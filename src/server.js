@@ -14,7 +14,9 @@ app.use(express.json());
 // for form data
 app.use(express.urlencoded({extended: true}))
 
-
+app.get('/api/v1/health', (req, res) => {
+    res.status(200).json("Get health Update");
+})
 
 app.listen((PORT), () => {
     console.log(`server is running on ${PORT}`);
