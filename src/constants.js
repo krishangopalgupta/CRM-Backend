@@ -1,3 +1,3 @@
-const DB_NAME = 'CRM-Backend'
+const DB_NAME = 'crm'
 
-export { DB_NAME };
+export { DB_NAME }; 
