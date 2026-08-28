@@ -2,31 +2,30 @@ import mongoose from "mongoose";
 
 const organizationSchema = new mongoose.Schema(
   {
-    name: {
+    orgName: {
       type: String,
       required: true,
       trim: true,
     },
-    email: {
+    orgEmail: {
       type: String,
       required: true,
       trim: true,
     },
-    phone: {
+    orgPhone: {
       type: String,
       trim: true,
     },
-    address: {
+    orgAddress: {
       type: String,
       required: true,
       trim: true,
     },
-    slug: {
+    orgSlug: {
       type: String,
       unique: true,
       trim: true,
       lowercase: true,
-      unique: true,
     },
   },
   { timestamps: true },
