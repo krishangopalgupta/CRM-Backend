@@ -11,6 +11,7 @@ const userSchema = new Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true
     },
     phone: {
       type: String,
@@ -25,6 +26,7 @@ const userSchema = new Schema(
     role: {
       type: String,
       required: true,
+      lowercase: true
     },
     organizationId: {
       type: Schema.Types.ObjectId,

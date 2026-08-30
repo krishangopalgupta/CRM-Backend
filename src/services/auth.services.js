@@ -3,7 +3,8 @@ import User from "../models/user.model.js";
 
 const registerUser = async (userData) => {
   const { organization, user } = userData;
-  const { orgName, orgEmail, orgPhone, orgAddress } = organization;
+
+ const { orgName, orgEmail, orgPhone, orgAddress } = organization;
 
   const slug = orgName.toLowerCase().trim().replace(/\s+/g, "-");
   const createdOrganization = await Organization.create({

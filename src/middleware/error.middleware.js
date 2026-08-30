@@ -1,9 +1,9 @@
-const errorHandler = async (err, req, res, next) => {
+const errorHandler = async (err, _, res, next) => {
   console.log(err);
-  res.status(500).json({
+  res.status(err.statusCode || 500).json({
     success: false,
-    message: "internal server error",
+    message: err.message || "Internal Server error",
   });
 };
 
-export default errorHandler
+export default errorHandler;
