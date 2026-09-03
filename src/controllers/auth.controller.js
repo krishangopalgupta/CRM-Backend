@@ -5,4 +5,4 @@ const register = async (req, res) => {
   console.log(result);
   res.status(201).json(result);
 };
-export { register };
+export { register }

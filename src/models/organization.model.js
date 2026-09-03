@@ -26,6 +26,7 @@ const organizationSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      required: true,
     },
   },
   { timestamps: true },

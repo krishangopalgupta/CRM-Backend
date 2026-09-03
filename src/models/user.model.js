@@ -11,12 +11,13 @@ const userSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-      lowercase: true
+      lowercase: true,
+      trim: true,
     },
     phone: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
     password: {
       type: String,
@@ -26,7 +27,7 @@ const userSchema = new Schema(
     role: {
       type: String,
       required: true,
-      lowercase: true
+      lowercase: true,
     },
     organizationId: {
       type: Schema.Types.ObjectId,
