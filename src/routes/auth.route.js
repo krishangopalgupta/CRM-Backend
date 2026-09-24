@@ -1,5 +1,5 @@
 import express from "express";
-import asyncHandler from '../middleware/asyncHandler.middleware.js'
+import asyncHandler from "../middleware/asyncHandler.middleware.js";
 import { register } from "../controllers/auth.controller.js";
 
 import { registrationSchema } from "../validations/auth.vaildation.js";

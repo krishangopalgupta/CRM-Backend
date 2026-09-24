@@ -14,7 +14,6 @@ import errorHandler from "./middleware/error.middleware.js";
 app.use("/api/v1", healthRouter);
 app.use("/api/v1/auth", authRoute);
 
-
 app.use(errorHandler)
 
 export default app;

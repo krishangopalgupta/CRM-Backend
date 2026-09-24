@@ -10,12 +10,14 @@ const organizationSchema = z.object({
   orgAddress: z.string().trim().min(10),
 });
 
-const userSchema = z.object({
-  name: z.string().trim().min(5),
-  email: z.string().trim().email(),
-  phone: z.string().regex(/^[6-9]\d{9}$/),
-  password: z.string().min(8),
-}).strict();
+const userSchema = z
+  .object({
+    name: z.string().trim().min(5),
+    email: z.string().trim().email(),
+    phone: z.string().regex(/^[6-9]\d{9}$/),
+    password: z.string().min(8),
+  })
+  .strict();
 
 const registrationSchema = z.object({
   organization: organizationSchema,
