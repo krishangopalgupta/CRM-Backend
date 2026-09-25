@@ -4,6 +4,6 @@ class AppError extends Error {
     this.statusCode = statusCode;
     this.success = false;
   }
-} 
+}
 
 export default AppError;

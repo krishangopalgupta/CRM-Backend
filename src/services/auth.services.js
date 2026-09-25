@@ -2,13 +2,18 @@ import mongoose from "mongoose";
 import Organization from "../models/organization.model.js";
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/tokens.js";
+
+const isUserEmailAlreadyExist = async (email) => {
+  return await User.findOne({ email });
+};
 
 const registerUser = async (userData) => {
   const { organization, user } = userData;
 
   const { name, email, phone, password } = user;
-  const isUserEmailAlreadyExist = await User.findOne({ email });
-  if (isUserEmailAlreadyExist) throw new AppError("User Already Exist", 409);
+  if (!(await isUserEmailAlreadyExist(email)))
+    throw new AppError("User Already Exist", 409);
 
   const { orgName, orgEmail, orgPhone, orgAddress } = organization;
   const orgSlug = orgName.toLowerCase().trim().replace(/\s+/g, "-");
@@ -64,4 +69,22 @@ const registerUser = async (userData) => {
     await session.endSession();
   }
 };
-export { registerUser };
+
+const loginUser = async (loginDetails) => {
+  const { email, password } = loginDetails;
+  const user = await User.findOne({ email }).select("+password");
+  if (!user) {
+    throw new AppError("Email or password is incorrect", 404);
+  }
+
+  const isPasswordCorrect = await user.comparePassword(password);
+  if (!isPasswordCorrect) {
+    throw new AppError("email or Password is incorrect");
+  }
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  return { accessToken, refreshToken };
+};
+export { registerUser, loginUser };

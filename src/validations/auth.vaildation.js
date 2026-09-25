@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const organizationSchema = z.object({
   orgName: z.string().trim().min(3),
-  orgEmail: z.string().trim().email(),
+  orgEmail: z.string().trim(),
   orgPhone: z
     .string()
     .regex(/^[6-9]\d{9}$/)
@@ -15,7 +15,7 @@ const userSchema = z
     name: z.string().trim().min(5),
     email: z.string().trim().email(),
     phone: z.string().regex(/^[6-9]\d{9}$/),
-    password: z.string().min(8),
+    password: z.string().trim().min(8),
   })
   .strict();
 
@@ -24,4 +24,8 @@ const registrationSchema = z.object({
   user: userSchema,
 });
 
-export { registrationSchema };
+const loginSchema = z.object({
+  email: z.string().trim(),
+  password: z.string().min(8),
+});
+export { registrationSchema, loginSchema };
