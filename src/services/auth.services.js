@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 import Organization from "../models/organization.model.js";
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
@@ -87,4 +88,19 @@ const loginUser = async (loginDetails) => {
 
   return { accessToken, refreshToken };
 };
-export { registerUser, loginUser };
+
+const refreshAccessToken = async (refreshToken) => {
+  const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+  const user = await User.findById(decoded.userId);
+  console.log(user);
+  if (!user) {
+    throw new AppError("User doesn't exist", 401);
+  }
+
+  const accessToken = generateAccessToken(user);
+
+  return accessToken;
+};
+
+export { registerUser, loginUser, refreshAccessToken };
