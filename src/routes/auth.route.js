@@ -6,6 +6,7 @@ import {
   registrationSchema,
   loginSchema,
 } from "../validations/auth.vaildation.js";
+
 import validate from "../middleware/validation.middleware.js";
 import authenticate from "../middleware/auth.middleware.js";
 const router = express.Router();

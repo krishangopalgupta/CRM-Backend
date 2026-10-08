@@ -1,25 +1,34 @@
-import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import Organization from "../models/organization.model.js";
+import mongoose from "mongoose";
 import User from "../models/user.model.js";
+import Organization from "../models/organization.model.js";
 import AppError from "../utils/AppError.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/tokens.js";
 
-const isUserEmailAlreadyExist = async (email) => {
-  return await User.findOne({ email });
-};
-
 const registerUser = async (userData) => {
   const { organization, user } = userData;
-
   const { name, email, phone, password } = user;
-  if (!(await isUserEmailAlreadyExist(email)))
-    throw new AppError("User Already Exist", 409);
+
+  // User Email Checker
+  const doesUserExist = await User.findOne({ $or: [{ email }, { phone }] });
+  if (doesUserExist) {
+    throw new AppError("User is already Exist", 409);
+  }
 
   const { orgName, orgEmail, orgPhone, orgAddress } = organization;
-  const orgSlug = orgName.toLowerCase().trim().replace(/\s+/g, "-");
-  const isCompanySlugExist = await Organization.findOne({ orgSlug });
-  if (isCompanySlugExist) throw new AppError("Slug is already exist", 409);
+
+  // organization Email Checker
+  const doesOrgEmailAlreadyExist = await Organization.findOne({ orgEmail });
+  if (doesOrgEmailAlreadyExist) {
+    throw new AppError("Organization email is already exist", 409);
+  }
+
+  // Organization Slug Checker
+  const orgSlug = orgName.trim().toLowerCase().replace(/\s+/g, "-");
+  const doesOrganizationSlugExist = await Organization.findOne({ orgSlug });
+  if (doesOrganizationSlugExist) {
+    throw new AppError("Organization's slug is already Exist", 409);
+  }
 
   const session = await mongoose.startSession();
   try {
@@ -44,14 +53,15 @@ const registerUser = async (userData) => {
           email,
           phone,
           password,
-          role: "Admin",
           organizationId: createdOrganization._id,
+          role: "owner",
         },
       ],
       { session },
     );
 
     await session.commitTransaction();
+
     return {
       createdOrganization,
       user: {
@@ -59,8 +69,6 @@ const registerUser = async (userData) => {
         name: createdUser.name,
         email: createdUser.email,
         phone: createdUser.phone,
-        role: createdUser.role,
-        organizationId: createdUser.organizationId,
       },
     };
   } catch (error) {
@@ -71,36 +79,36 @@ const registerUser = async (userData) => {
   }
 };
 
-const loginUser = async (loginDetails) => {
-  const { email, password } = loginDetails;
+const loginUser = async (loginData) => {
+  const { email, password } = loginData;
   const user = await User.findOne({ email }).select("+password");
   if (!user) {
-    throw new AppError("Email or password is incorrect", 404);
+    throw new AppError("email or password is incorrect", 404);
   }
 
   const isPasswordCorrect = await user.comparePassword(password);
   if (!isPasswordCorrect) {
-    throw new AppError("email or Password is incorrect");
+    throw new AppError("email or password is incorrect", 404);
   }
 
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
+  const accessToken = await generateAccessToken(user);
+  const refreshToken = await generateRefreshToken(user);
 
+  if (!accessToken || !refreshToken)
+    throw new AppError("Token is required", 401);
   return { accessToken, refreshToken };
 };
 
 const refreshAccessToken = async (refreshToken) => {
-  const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  // when i passed the refreshToken i've a payload of userId that can be used to generate access token
+  const decodedToken = jwt.verify(
+    refreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+  );
+  if (!decodedToken) throw new AppError("User is unauthorized", 401);
 
-  const user = await User.findById(decoded.userId);
-  console.log(user);
-  if (!user) {
-    throw new AppError("User doesn't exist", 401);
-  }
-
-  const accessToken = generateAccessToken(user);
-
-  return accessToken;
+  const user = await User.findById(decodedToken.userId);
+  return generateAccessToken(user);
 };
 
 export { registerUser, loginUser, refreshAccessToken };

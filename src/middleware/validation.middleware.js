@@ -15,7 +15,6 @@ const validate = (schema) => {
             return `${path} : ${issue.message}`;
           })
           .join(", ");
-
         return next(new AppError(message, 400));
       }
       next(error);

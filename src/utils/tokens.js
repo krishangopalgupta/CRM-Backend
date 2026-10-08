@@ -1,27 +1,26 @@
 import jwt from "jsonwebtoken";
 
-export const generateAccessToken = (user) => {
+const generateAccessToken = async (user) => {
+  const { userId, role, organizationId } = user;
   return jwt.sign(
     {
-      userId: user._id,
-      organizationId: user.organizationId,
-      role: user.role,
+      userId,
+      role,
+      organizationId,
     },
     process.env.ACCESS_TOKEN_SECRET,
-    {
-      expiresIn: "10s",
-    },
+    { expiresIn: "15m" },
   );
 };
 
-export const generateRefreshToken = (user) => {
+const generateRefreshToken = async (user) => {
   return jwt.sign(
     {
       userId: user._id,
     },
     process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: "7d",
-    },
+    { expiresIn: "7d" },
   );
 };
+
+export { generateAccessToken, generateRefreshToken };
