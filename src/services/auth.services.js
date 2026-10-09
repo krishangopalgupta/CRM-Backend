@@ -98,9 +98,6 @@ const loginUser = async (loginData) => {
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user?._id, tokenId);
 
-  if (!accessToken || !refreshToken)
-    throw new AppError("Token generation failed", 500);
-
   await RefreshSession.create({
     userId: user?._id,
     tokenId,
@@ -111,8 +108,7 @@ const loginUser = async (loginData) => {
 
 const refreshAccessToken = async (refreshToken) => {
   const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-  if (!decoded) throw new AppError("Token is invalid or expired", 401);
-
+  
   const { userId, tokenId } = decoded;
   const session = await RefreshSession.findOne({
     userId,

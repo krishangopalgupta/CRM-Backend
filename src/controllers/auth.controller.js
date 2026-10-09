@@ -3,7 +3,6 @@ import {
   loginUser,
   refreshAccessToken,
 } from "../services/auth.services.js";
-import AppError from "../utils/AppError.js";
 
 const register = async (req, res) => {
   const result = await registerUser(req.body);

@@ -13,7 +13,6 @@ const generateAccessToken = (user) => {
 };
 
 const generateRefreshToken = (userId, tokenId) => {
-  console.log(userId, tokenId);
   return jwt.sign(
     {
       userId,
