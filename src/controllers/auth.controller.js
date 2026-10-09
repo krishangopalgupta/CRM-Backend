@@ -29,10 +29,7 @@ const login = async (req, res) => {
 
 const refresh = async (req, res) => {
   const refreshToken = req.cookies?.refreshToken;
-  if (!refreshToken) throw new AppError("Refresh Token is required", 401);
-
   const accessToken = await refreshAccessToken(refreshToken);
-  if (!accessToken) throw new AppError("Access Token is required", 401);
 
   return res.status(200).json({ success: true, accessToken });
 };

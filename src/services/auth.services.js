@@ -1,7 +1,10 @@
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import crypto from "crypto";
+
 import User from "../models/user.model.js";
 import Organization from "../models/organization.model.js";
+import RefreshSession from "../models/refreshSession.model.js";
 import AppError from "../utils/AppError.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/tokens.js";
 
@@ -91,23 +94,38 @@ const loginUser = async (loginData) => {
     throw new AppError("email or password is incorrect", 404);
   }
 
-  const accessToken = await generateAccessToken(user);
-  const refreshToken = await generateRefreshToken(user);
+  const tokenId = crypto.randomUUID();
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user?._id, tokenId);
 
   if (!accessToken || !refreshToken)
-    throw new AppError("Token is required", 401);
+    throw new AppError("Token generation failed", 500);
+
+  await RefreshSession.create({
+    userId: user?._id,
+    tokenId,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
   return { accessToken, refreshToken };
 };
 
 const refreshAccessToken = async (refreshToken) => {
-  // when i passed the refreshToken i've a payload of userId that can be used to generate access token
-  const decodedToken = jwt.verify(
-    refreshToken,
-    process.env.REFRESH_TOKEN_SECRET,
-  );
-  if (!decodedToken) throw new AppError("User is unauthorized", 401);
+  const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  if (!decoded) throw new AppError("Token is invalid or expired", 401);
 
-  const user = await User.findById(decodedToken.userId);
+  const { userId, tokenId } = decoded;
+  const session = await RefreshSession.findOne({
+    userId,
+    tokenId,
+    revokedAt: null,
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (!session) throw new AppError("User is not authorized", 401);
+
+  const user = await User.findById(userId);
+  if (!user) throw new AppError("User is not authorized", 401);
+
   return generateAccessToken(user);
 };
 
