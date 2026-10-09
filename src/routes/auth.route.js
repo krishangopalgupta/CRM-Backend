@@ -1,6 +1,11 @@
 import express from "express";
 import asyncHandler from "../middleware/asyncHandler.middleware.js";
-import { register, login, refresh } from "../controllers/auth.controller.js";
+import {
+  register,
+  login,
+  refresh,
+  logout,
+} from "../controllers/auth.controller.js";
 
 import {
   registrationSchema,
@@ -14,6 +19,7 @@ const router = express.Router();
 router.post("/register", validate(registrationSchema), asyncHandler(register));
 router.post("/login", validate(loginSchema), asyncHandler(login));
 router.post("/refresh", asyncHandler(refresh));
+router.post("/logout", asyncHandler(logout));
 
 router.get("/test", authenticate, (req, res) => {
   res

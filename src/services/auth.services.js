@@ -108,7 +108,8 @@ const loginUser = async (loginData) => {
 
 const refreshAccessToken = async (refreshToken) => {
   const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-  
+  if (!decoded) throw new AppError("token is invalid or expired", 401);
+
   const { userId, tokenId } = decoded;
   const session = await RefreshSession.findOne({
     userId,
@@ -117,7 +118,7 @@ const refreshAccessToken = async (refreshToken) => {
     expiresAt: { $gt: new Date() },
   });
 
-  if (!session) throw new AppError("User is not authorized", 401);
+  if (!session) throw new AppError("Session not found or already revoked", 401);
 
   const user = await User.findById(userId);
   if (!user) throw new AppError("User is not authorized", 401);
@@ -125,4 +126,19 @@ const refreshAccessToken = async (refreshToken) => {
   return generateAccessToken(user);
 };
 
-export { registerUser, loginUser, refreshAccessToken };
+const logoutUser = async (extractedRefreshTokenFromCookie) => {
+  const refreshToken = extractedRefreshTokenFromCookie;
+  if (!refreshToken) throw new AppError("User is not authorized", 401);
+
+  const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  const { userId, tokenId } = decoded;
+  const session = await RefreshSession.findOneAndUpdate(
+    { userId, tokenId, revokedAt: null },
+    { revokedAt: new Date() },
+    { new: true },
+  );
+
+  if(!session) throw new AppError("Session is not found or already revoked", 401);
+  return;
+};
+export { registerUser, loginUser, refreshAccessToken, logoutUser };

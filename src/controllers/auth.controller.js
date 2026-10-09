@@ -2,7 +2,9 @@ import {
   registerUser,
   loginUser,
   refreshAccessToken,
+  logoutUser,
 } from "../services/auth.services.js";
+import AppError from "../utils/AppError.js";
 
 const register = async (req, res) => {
   const result = await registerUser(req.body);
@@ -28,9 +30,24 @@ const login = async (req, res) => {
 
 const refresh = async (req, res) => {
   const refreshToken = req.cookies?.refreshToken;
+  if (!refreshToken) throw new AppError("User is unauthorized", 401);
   const accessToken = await refreshAccessToken(refreshToken);
 
   return res.status(200).json({ success: true, accessToken });
 };
 
-export { register, login, refresh };
+const logout = async (req, res) => {
+  await logoutUser(req.cookies.refreshToken);
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+
+  return res
+    .status(200)
+    .json({ success: true, message: "logout Successfully" });
+};
+
+export { register, login, refresh, logout };
