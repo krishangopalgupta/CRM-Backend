@@ -29,9 +29,19 @@ const login = async (req, res) => {
 };
 
 const refresh = async (req, res) => {
-  const refreshToken = req.cookies?.refreshToken;
-  if (!refreshToken) throw new AppError("User is unauthorized", 401);
-  const accessToken = await refreshAccessToken(refreshToken);
+  const cookiesRefreshToken = req.cookies?.refreshToken;
+  if (!cookiesRefreshToken) throw new AppError("User is unauthorized", 401);
+  const { accessToken, refreshToken } =
+    await refreshAccessToken(cookiesRefreshToken);
+
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
   return res.status(200).json({ success: true, accessToken });
 };

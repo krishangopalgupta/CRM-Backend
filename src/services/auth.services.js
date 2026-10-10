@@ -106,24 +106,84 @@ const loginUser = async (loginData) => {
   return { accessToken, refreshToken };
 };
 
-const refreshAccessToken = async (refreshToken) => {
-  const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-  if (!decoded) throw new AppError("token is invalid or expired", 401);
+const refreshAccessToken = async (cookiesRefreshToken) => {
+  // const decoded = jwt.verify(
+  //   cookiesRefreshToken,
+  //   process.env.REFRESH_TOKEN_SECRET,
+  // );
+  // if (!decoded) throw new AppError("token is invalid or expired", 401);
 
+  let decoded;
+
+  try {
+    decoded = jwt.verify(cookiesRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+  } catch (error) {
+    if (
+      error instanceof jwt.JsonWebTokenError ||
+      error instanceof jwt.TokenExpiredError
+    ) {
+      throw new AppError("Refresh token is invalid or expired", 401);
+    }
+
+    throw error;
+  }
   const { userId, tokenId } = decoded;
-  const session = await RefreshSession.findOne({
+  const doesSessionRevoked = await RefreshSession.findOne({
     userId,
     tokenId,
     revokedAt: null,
     expiresAt: { $gt: new Date() },
   });
 
-  if (!session) throw new AppError("Session not found or already revoked", 401);
+  if (!doesSessionRevoked)
+    throw new AppError("Session not found or already revoked", 401);
 
   const user = await User.findById(userId);
   if (!user) throw new AppError("User is not authorized", 401);
 
-  return generateAccessToken(user);
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const newTokenId = crypto.randomUUID();
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user?._id, newTokenId);
+
+    if (!accessToken || !refreshToken)
+      throw new AppError("token is required", 401);
+
+    const revokedSession = await RefreshSession.findOneAndUpdate(
+      {
+        userId,
+        tokenId,
+        revokedAt: null,
+        expiresAt: { $gt: new Date() },
+      },
+      { revokedAt: new Date() },
+      { returnDocument: "after", session },
+    );
+
+    if (!revokedSession)
+      throw new AppError("Session not found or revoked", 401);
+
+    await RefreshSession.create(
+      [
+        {
+          userId,
+          tokenId: newTokenId,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      ],
+      { session },
+    );
+
+    await session.commitTransaction();
+    return { accessToken, refreshToken };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 };
 
 const logoutUser = async (extractedRefreshTokenFromCookie) => {
@@ -135,10 +195,11 @@ const logoutUser = async (extractedRefreshTokenFromCookie) => {
   const session = await RefreshSession.findOneAndUpdate(
     { userId, tokenId, revokedAt: null },
     { revokedAt: new Date() },
-    { new: true },
+    { returnDocument: 'after' },
   );
 
-  if(!session) throw new AppError("Session is not found or already revoked", 401);
+  if (!session)
+    throw new AppError("Session is not found or already revoked", 401);
   return;
 };
 export { registerUser, loginUser, refreshAccessToken, logoutUser };
