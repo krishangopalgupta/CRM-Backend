@@ -3,6 +3,7 @@ import {
   getCustomerService,
   getAllCustomerService,
   updateCustomerService,
+  deleteCustomerService,
 } from "../services/customer.services.js";
 
 const createcustomer = async (req, res) => {
@@ -32,16 +33,32 @@ const getAllCustomer = async (req, res) => {
 };
 
 const updateCustomer = async (req, res) => {
-  const customer = await updateCustomerService(
+  const result = await updateCustomerService(
     req.params.id,
     req.user.organizationId,
-    req.body
+    req.body,
   );
-  
+
   return res.status(200).json({
     success: true,
-    customer,
-  })
+    result,
+  });
 };
 
-export { createcustomer, getCustomer, getAllCustomer, updateCustomer };
+const deleteCustomer = async (req, res) => {
+  const result = await deleteCustomerService(
+    req.params.id,
+    req.user.organizationId,
+  );
+  return res
+    .status(204)
+    .json({ success: true, message: "deleted successfully", result: result });
+};
+
+export {
+  createcustomer,
+  getCustomer,
+  getAllCustomer,
+  updateCustomer,
+  deleteCustomer,
+};

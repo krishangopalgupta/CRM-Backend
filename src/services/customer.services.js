@@ -64,9 +64,15 @@ const updateCustomerService = async (
   return customer;
 };
 
+const deleteCustomerService = async(customerId, organizationId) => {
+  const customer = await Customer.findOneAndDelete({_id: customerId, organizationId});
+  if(!customer) throw new AppError("customer not found", 404);
+  return customer;
+}
 export {
   createCustomerService,
   getCustomerService,
   getAllCustomerService,
   updateCustomerService,
+  deleteCustomerService
 };

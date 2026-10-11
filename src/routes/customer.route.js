@@ -6,6 +6,7 @@ import {
   getCustomer,
   getAllCustomer,
   updateCustomer,
+  deleteCustomer,
 } from "../controllers/customer.controller.js";
 
 // validation
@@ -25,9 +26,9 @@ router.post(
   validate(customerSchema),
   asyncHandler(createcustomer),
 );
-
 router.get("/get-customer/:id", asyncHandler(getCustomer));
 router.get("/get-all-customers", asyncHandler(getAllCustomer));
 router.put("/update-customer/:id", asyncHandler(updateCustomer));
+router.delete("/delete-customer/:id", asyncHandler(deleteCustomer));
 
 export default router;
