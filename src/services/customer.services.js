@@ -34,12 +34,18 @@ const getCustomerService = async (customerId, organizationId) => {
 };
 
 // get all customer
-const getAllCustomerService = async (organizationId) => {
-  const customer = await Customer.find({ organizationId }).populate(
-    "organizationId",
-    "orgName orgSlug",
-  );
-  return customer;
+const getAllCustomerService = async (organizationId, page, limit) => {
+  const skip = (page - 1) * limit;
+  let [customer, totalCustomers] = await Promise.all([
+    Customer.find({ organizationId })
+      .populate("organizationId", "orgName orgSlug")
+      .sort({ createdAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit),
+
+    Customer.countDocuments({ organizationId }),
+  ]);
+  return { customer, totalCustomers };
 };
 
 // update customer
@@ -64,15 +70,18 @@ const updateCustomerService = async (
   return customer;
 };
 
-const deleteCustomerService = async(customerId, organizationId) => {
-  const customer = await Customer.findOneAndDelete({_id: customerId, organizationId});
-  if(!customer) throw new AppError("customer not found", 404);
+const deleteCustomerService = async (customerId, organizationId) => {
+  const customer = await Customer.findOneAndDelete({
+    _id: customerId,
+    organizationId,
+  });
+  if (!customer) throw new AppError("customer not found", 404);
   return customer;
-}
+};
 export {
   createCustomerService,
   getCustomerService,
   getAllCustomerService,
   updateCustomerService,
-  deleteCustomerService
+  deleteCustomerService,
 };

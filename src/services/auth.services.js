@@ -12,12 +12,6 @@ const registerUser = async (userData) => {
   const { organization, user } = userData;
   const { name, email, phone, password } = user;
 
-  // User Email Checker
-  // const doesUserExist = await User.findOne({ $or: [{ email }] });
-  // if (doesUserExist) {
-  //   throw new AppError("User is already Exist", 409);
-  // }
-
   const { orgName, orgEmail, orgPhone, orgAddress } = organization;
 
   // organization Email Checker

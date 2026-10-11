@@ -6,14 +6,7 @@ import {
 } from "../services/auth.services.js";
 import AppError from "../utils/AppError.js";
 
-const register = async (req, res) => {
-  const result = await registerUser(req.body);
-  res.status(201).json(result);
-};
-
-const login = async (req, res) => {
-  const { accessToken, refreshToken } = await loginUser(req.body);
-
+const setCookie = (res, refreshToken) => {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -21,7 +14,17 @@ const login = async (req, res) => {
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+};
 
+const register = async (req, res) => {
+  const result = await registerUser(req.body);
+  res.status(201).json(result);
+};
+
+const login = async (req, res) => {
+  const { accessToken, refreshToken } = await loginUser(req.body);
+  
+  setCookie(res, refreshToken);
   res.status(200).json({
     success: true,
     accessToken,
@@ -34,15 +37,7 @@ const refresh = async (req, res) => {
   const { accessToken, refreshToken } =
     await refreshAccessToken(cookiesRefreshToken);
 
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
+  setCookie(res, refreshToken);
   return res.status(200).json({ success: true, accessToken });
 };
 
