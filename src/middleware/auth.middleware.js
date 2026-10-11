@@ -16,7 +16,10 @@ const authenticate = (req, _, next) => {
     req.user = decodedToken;
     next();
   } catch (error) {
-    throw new AppError("Token Expired or invalid", 401);
+    if (error instanceof jwt.JsonWebTokenError) {
+      throw new AppError("Access Token is invalid or expired", 401);
+    }
+    throw error;
   }
 };
 

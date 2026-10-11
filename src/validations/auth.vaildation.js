@@ -28,4 +28,11 @@ const loginSchema = z.object({
   email: z.string().trim(),
   password: z.string().min(8),
 });
-export { registrationSchema, loginSchema };
+
+const customerSchema = z.object({
+  name: z.string().trim(),
+  email: z.string().trim().email(),
+  phone: z.string().regex(/^[6-9]\d{9}$/),
+});
+
+export { registrationSchema, loginSchema, customerSchema };

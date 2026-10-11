@@ -10,14 +10,12 @@ const userSchema = new Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
     phone: {
       type: String,
       required: true,
-      unique: true,
     },
     password: {
       type: String,
@@ -33,6 +31,7 @@ const userSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Organization",
       required: true,
+      index: true,
     },
   },
   { timestamps: true },

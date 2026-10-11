@@ -13,10 +13,10 @@ const registerUser = async (userData) => {
   const { name, email, phone, password } = user;
 
   // User Email Checker
-  const doesUserExist = await User.findOne({ $or: [{ email }, { phone }] });
-  if (doesUserExist) {
-    throw new AppError("User is already Exist", 409);
-  }
+  // const doesUserExist = await User.findOne({ $or: [{ email }] });
+  // if (doesUserExist) {
+  //   throw new AppError("User is already Exist", 409);
+  // }
 
   const { orgName, orgEmail, orgPhone, orgAddress } = organization;
 
@@ -72,6 +72,7 @@ const registerUser = async (userData) => {
         name: createdUser.name,
         email: createdUser.email,
         phone: createdUser.phone,
+        role: createdUser.role,
       },
     };
   } catch (error) {
@@ -107,14 +108,9 @@ const loginUser = async (loginData) => {
 };
 
 const refreshAccessToken = async (cookiesRefreshToken) => {
-  // const decoded = jwt.verify(
-  //   cookiesRefreshToken,
-  //   process.env.REFRESH_TOKEN_SECRET,
-  // );
-  // if (!decoded) throw new AppError("token is invalid or expired", 401);
-
+  // above will not work if the token is not correct so but decoded has some value an external 500 error would be shown instead of 401
+  // so we'd need to use jwt error class
   let decoded;
-
   try {
     decoded = jwt.verify(cookiesRefreshToken, process.env.REFRESH_TOKEN_SECRET);
   } catch (error) {
@@ -124,7 +120,7 @@ const refreshAccessToken = async (cookiesRefreshToken) => {
     ) {
       throw new AppError("Refresh token is invalid or expired", 401);
     }
-
+    // if error is not matched with jwt then this will throw an error.
     throw error;
   }
   const { userId, tokenId } = decoded;
@@ -195,11 +191,14 @@ const logoutUser = async (extractedRefreshTokenFromCookie) => {
   const session = await RefreshSession.findOneAndUpdate(
     { userId, tokenId, revokedAt: null },
     { revokedAt: new Date() },
-    { returnDocument: 'after' },
+    { returnDocument: "after" },
   );
 
   if (!session)
     throw new AppError("Session is not found or already revoked", 401);
   return;
 };
+
+
+
 export { registerUser, loginUser, refreshAccessToken, logoutUser };

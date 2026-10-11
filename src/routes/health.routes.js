@@ -1,9 +1,21 @@
-import express from 'express'
 
-const router = express.Router();
+// import { Router } from "express";
+// import authenticate from "../middlewares/authenticate.js";
+// import authorizeRoles from "../middlewares/authorizeRoles.js";
 
-router.get("/health", (req, res, next) => {
-  res.status(200).json({ message: "Health update data" });
-});
+// const router = Router();
 
-export default router;
+// router.get(
+//   "/owner-test",
+//   authenticate,
+//   authorizeRoles("owner"),
+//   (req, res) => {
+//     return res.status(200).json({
+//       success: true,
+//       message: "Owner authorization successful",
+//       user: req.user,
+//     });
+//   }
+// );
+
+// export default router;

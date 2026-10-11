@@ -11,6 +11,8 @@ const organizationSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      unique: true,
+      index: true
     },
     orgPhone: {
       type: String,
