@@ -5,6 +5,7 @@ import {
   createcustomer,
   getCustomer,
   getAllCustomer,
+  updateCustomer,
 } from "../controllers/customer.controller.js";
 
 // validation
@@ -27,5 +28,6 @@ router.post(
 
 router.get("/get-customer/:id", asyncHandler(getCustomer));
 router.get("/get-all-customers", asyncHandler(getAllCustomer));
+router.put("/update-customer/:id", asyncHandler(updateCustomer));
 
 export default router;

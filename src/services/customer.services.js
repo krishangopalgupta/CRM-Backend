@@ -42,4 +42,31 @@ const getAllCustomerService = async (organizationId) => {
   return customer;
 };
 
-export { createCustomerService, getCustomerService, getAllCustomerService };
+// update customer
+const updateCustomerService = async (
+  customerId,
+  organizationId,
+  customerData,
+) => {
+  const { name, email, phone } = customerData;
+
+  const updatedData = {};
+  if (name) updatedData.name = name;
+  if (phone) updatedData.phone = phone;
+  if (email) updatedData.email = email;
+
+  const customer = await Customer.findByIdAndUpdate(
+    { _id: customerId, organizationId },
+    { $set: updatedData },
+    { returnDocument: "after", runValidators: true },
+  );
+  if (!customer) throw new AppError("customer not found", 404);
+  return customer;
+};
+
+export {
+  createCustomerService,
+  getCustomerService,
+  getAllCustomerService,
+  updateCustomerService,
+};

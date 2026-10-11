@@ -2,6 +2,7 @@ import {
   createCustomerService,
   getCustomerService,
   getAllCustomerService,
+  updateCustomerService,
 } from "../services/customer.services.js";
 
 const createcustomer = async (req, res) => {
@@ -30,4 +31,17 @@ const getAllCustomer = async (req, res) => {
   });
 };
 
-export { createcustomer, getCustomer, getAllCustomer };
+const updateCustomer = async (req, res) => {
+  const customer = await updateCustomerService(
+    req.params.id,
+    req.user.organizationId,
+    req.body
+  );
+  
+  return res.status(200).json({
+    success: true,
+    customer,
+  })
+};
+
+export { createcustomer, getCustomer, getAllCustomer, updateCustomer };
