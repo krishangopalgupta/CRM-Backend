@@ -2,8 +2,9 @@ import express from "express";
 
 // controller
 import {
-  createcustomerController,
-  getAllCustomerController,
+  createcustomer,
+  getCustomer,
+  getAllCustomer,
 } from "../controllers/customer.controller.js";
 
 // validation
@@ -16,17 +17,15 @@ import asyncHandler from "../middleware/asyncHandler.middleware.js";
 
 // routes
 const router = express.Router();
+
+router.use(authenticate);
 router.post(
   "/create-customer",
-  authenticate,
   validate(customerSchema),
-  asyncHandler(createcustomerController),
+  asyncHandler(createcustomer),
 );
 
-router.get(
-  "/get-all-customers",
-  authenticate,
-  asyncHandler(getAllCustomerController),
-);
+router.get("/get-customer/:id", asyncHandler(getCustomer));
+router.get("/get-all-customers", asyncHandler(getAllCustomer));
 
 export default router;

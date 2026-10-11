@@ -1,22 +1,33 @@
 import {
-  createCustomer,
-  getAllCustomer,
+  createCustomerService,
+  getCustomerService,
+  getAllCustomerService,
 } from "../services/customer.services.js";
 
-const createcustomerController = async (req, res) => {
-  const result = await createCustomer(req.body, req.user.organizationId);
+const createcustomer = async (req, res) => {
+  const result = await createCustomerService(req.body, req.user.organizationId);
   return res
     .status(201)
     .json({ success: true, message: "customer created successfully", result });
 };
 
-const getAllCustomerController = async (req, res) => {
-  const result = await getAllCustomer(req.user?.organizationId);
+const getCustomer = async (req, res) => {
+  const result = await getCustomerService(
+    req.params.id,
+    req.user.organizationId,
+  );
   return res.status(200).json({
     success: true,
-    message: "All customer fetched succesfully",
-    result: result.length > 0 ? result : "No customer found",
+    result,
   });
 };
 
-export { createcustomerController, getAllCustomerController };
+const getAllCustomer = async (req, res) => {
+  const result = await getAllCustomerService(req.user?.organizationId);
+  return res.status(200).json({
+    success: true,
+    result: result.length > 0 ? result : [],
+  });
+};
+
+export { createcustomer, getCustomer, getAllCustomer };

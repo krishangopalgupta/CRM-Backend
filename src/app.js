@@ -16,7 +16,7 @@ import authRoute from "./routes/auth.route.js";
 import customerRoute from "./routes/customer.route.js";
 import errorHandler from "./middleware/error.middleware.js";
 app.use("/api/v1/auth", authRoute);
-app.use("/api/v1", customerRoute);
+app.use("/api/v1/customers", customerRoute);
 app.use(errorHandler);
 
 export default app;
