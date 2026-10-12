@@ -34,16 +34,34 @@ const getCustomerService = async (customerId, organizationId) => {
 };
 
 // get all customer
-const getAllCustomerService = async (organizationId, page, limit) => {
+const getAllCustomerService = async (
+  organizationId,
+  page,
+  limit,
+  search = "",
+) => {
+  const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const skip = (page - 1) * limit;
+
+  // restrict the query to the organization filter
+  const filter = { organizationId };
+  if (search) {
+    const searchRegex = new RegExp(escapeRegex(search), "i");
+    filter.$or = [
+      { name: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex },
+    ];
+  }
   let [customer, totalCustomers] = await Promise.all([
-    Customer.find({ organizationId })
+    Customer.find(filter)
       .populate("organizationId", "orgName orgSlug")
       .sort({ createdAt: -1, _id: -1 })
       .skip(skip)
       .limit(limit),
 
-    Customer.countDocuments({ organizationId }),
+    Customer.countDocuments(filter),
   ]);
   return { customer, totalCustomers };
 };

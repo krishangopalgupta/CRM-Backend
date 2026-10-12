@@ -5,6 +5,7 @@ import {
   updateCustomerService,
   deleteCustomerService,
 } from "../services/customer.services.js";
+import AppError from "../utils/AppError.js";
 import pagination from "../utils/pagination.js";
 
 const createcustomer = async (req, res) => {
@@ -26,11 +27,16 @@ const getCustomer = async (req, res) => {
 };
 
 const getAllCustomer = async (req, res) => {
+  const search = req.query.search ? req.query.search.trim() : "";
+  if (search.length > 100)
+    throw new AppError("search must be at most 100 character", 400);
+
   const { page, limit } = pagination(req.query);
   const { customer, totalCustomers } = await getAllCustomerService(
     req.user?.organizationId,
     page,
     limit,
+    search,
   );
 
   const totalPages = Math.ceil(totalCustomers / limit);

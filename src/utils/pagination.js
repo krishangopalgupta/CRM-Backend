@@ -1,3 +1,5 @@
+import AppError from "./AppError.js";
+
 const pagination = (pageData) => {
   let limit = Number(pageData.limit || 10);
   let page = Number(pageData.page || 1);
