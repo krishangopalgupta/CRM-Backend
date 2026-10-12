@@ -31,12 +31,21 @@ const getAllCustomer = async (req, res) => {
   if (search.length > 100)
     throw new AppError("search must be at most 100 character", 400);
 
+  const sort = req.query.sort ? req.query.sort.trim() : "newest";
+  // if (sort !== "newest" || sort !== "oldest")
+  //   throw new AppError("invalid sort options", 400);
+
+  if (!["newest", "oldest"].includes(sort)) {
+    throw new AppError("invalid sort options", 400);
+  }
+
   const { page, limit } = pagination(req.query);
   const { customer, totalCustomers } = await getAllCustomerService(
     req.user?.organizationId,
     page,
     limit,
     search,
+    sort,
   );
 
   const totalPages = Math.ceil(totalCustomers / limit);

@@ -39,6 +39,7 @@ const getAllCustomerService = async (
   page,
   limit,
   search = "",
+  sort = "newest",
 ) => {
   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -54,10 +55,15 @@ const getAllCustomerService = async (
       { phone: searchRegex },
     ];
   }
+
+  let sortOrder = {};
+  if (sort === "oldest") sortOrder = { createdAt: 1, _id: 1 };
+  else sortOrder = { createdAt: -1, _id: -1 };
+
   let [customer, totalCustomers] = await Promise.all([
     Customer.find(filter)
       .populate("organizationId", "orgName orgSlug")
-      .sort({ createdAt: -1, _id: -1 })
+      .sort(sortOrder)
       .skip(skip)
       .limit(limit),
 
