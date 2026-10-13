@@ -27,6 +27,6 @@ const customerSchema = new Schema(
 
 customerSchema.index({ organizationId: 1, email: 1 }, { unique: true });
 customerSchema.index({ organizationId: 1, phone: 1 }, { unique: true });
-
+customerSchema.index({ organizationId: 1, createdAt: -1, _id: -1 });
 const Customer = mongoose.model("Customer", customerSchema);
 export default Customer;

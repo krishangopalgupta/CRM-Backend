@@ -34,6 +34,7 @@ const getCustomerService = async (customerId, organizationId) => {
   return customer;
 };
 
+
 // get all customer
 const getAllCustomerService = async (
   organizationId,

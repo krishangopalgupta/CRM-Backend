@@ -193,6 +193,4 @@ const logoutUser = async (extractedRefreshTokenFromCookie) => {
   return;
 };
 
-
-
 export { registerUser, loginUser, refreshAccessToken, logoutUser };

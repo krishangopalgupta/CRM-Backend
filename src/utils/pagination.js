@@ -8,7 +8,7 @@ const pageLimit = (q) => {
   // limit validation
   if (
     !Number.isInteger(limit) ||
-    limit < 10 ||
+    // limit < 10 ||
     limit > 100
   ) {
     throw new AppError("Invalid limit", 400);
