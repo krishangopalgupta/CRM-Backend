@@ -6,7 +6,7 @@ import {
   deleteCustomerService,
 } from "../services/customer.services.js";
 import AppError from "../utils/AppError.js";
-import pagination from "../utils/pagination.js";
+import { pageLimit } from "../utils/pagination.js";
 
 const createcustomer = async (req, res) => {
   const result = await createCustomerService(req.body, req.user.organizationId);
@@ -31,34 +31,24 @@ const getAllCustomer = async (req, res) => {
   if (search.length > 100)
     throw new AppError("search must be at most 100 character", 400);
 
-  const sort = req.query.sort ? req.query.sort.trim() : "newest";
-  // if (sort !== "newest" || sort !== "oldest")
-  //   throw new AppError("invalid sort options", 400);
+  const { limit, cursor, sort } = pageLimit(req.query);
+  console.log("limit", limit, cursor, sort);
 
-  if (!["newest", "oldest"].includes(sort)) {
-    throw new AppError("invalid sort options", 400);
-  }
-
-  const { page, limit } = pagination(req.query);
-  const { customer, totalCustomers } = await getAllCustomerService(
+  const result = await getAllCustomerService(
     req.user?.organizationId,
-    page,
     limit,
     search,
     sort,
+    cursor,
   );
 
-  const totalPages = Math.ceil(totalCustomers / limit);
   return res.status(200).json({
     success: true,
-    result: customer ? customer : [],
+    result: result.customers,
     pagination: {
-      currentPage: page,
       limit,
-      totalCustomers,
-      totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1 && totalPages > 0,
+      hasNextPage: result.hasNextPage,
+      nextCursor: result.nextCursor,
     },
   });
 };

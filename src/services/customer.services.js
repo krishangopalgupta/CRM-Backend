@@ -1,4 +1,5 @@
 import Customer from "../models/customer.model.js";
+import { decodeCursor, encodeCursor } from "../utils/pagination.js";
 import AppError from "../utils/AppError.js";
 
 // create the customer
@@ -36,14 +37,12 @@ const getCustomerService = async (customerId, organizationId) => {
 // get all customer
 const getAllCustomerService = async (
   organizationId,
-  page,
   limit,
   search = "",
   sort = "newest",
+  cursorValue,
 ) => {
   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  const skip = (page - 1) * limit;
 
   // restrict the query to the organization filter
   const filter = { organizationId };
@@ -56,20 +55,44 @@ const getAllCustomerService = async (
     ];
   }
 
+  const operator = sort === "newest" ? "$lt" : "$gt";
+  if (cursorValue) {
+    const cursor = decodeCursor(cursorValue, organizationId);
+    filter.$and = [
+      {
+        $or: [
+          { createdAt: { [operator]: cursor.createdAt } },
+          {
+            createdAt: cursor.createdAt,
+            _id: { [operator]: cursor.id },
+          },
+        ],
+      },
+    ];
+  }
+
   let sortOrder = {};
   if (sort === "oldest") sortOrder = { createdAt: 1, _id: 1 };
   else sortOrder = { createdAt: -1, _id: -1 };
 
-  let [customer, totalCustomers] = await Promise.all([
-    Customer.find(filter)
-      .populate("organizationId", "orgName orgSlug")
-      .sort(sortOrder)
-      .skip(skip)
-      .limit(limit),
+  const customers = await Customer.find(filter)
+    .populate("organizationId", "orgName orgSlug")
+    .sort(sortOrder)
+    .limit(limit + 1);
 
-    Customer.countDocuments(filter),
-  ]);
-  return { customer, totalCustomers };
+  const hasNextPage = customers.length > limit;
+  if (hasNextPage) customers.pop();
+
+  const lastCustomer = customers.at(-1);
+
+  return {
+    customers,
+    hasNextPage,
+    nextCursor:
+      hasNextPage && lastCustomer
+        ? encodeCursor(lastCustomer, organizationId)
+        : null,
+  };
 };
 
 // update customer
