@@ -35,4 +35,8 @@ const customerSchema = z.object({
   phone: z.string().regex(/^[6-9]\d{9}$/),
 });
 
-export { registrationSchema, loginSchema, customerSchema };
+const invitationSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export { registrationSchema, loginSchema, customerSchema, invitationSchema };

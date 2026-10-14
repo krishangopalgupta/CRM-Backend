@@ -9,7 +9,6 @@ const authorizeRole = (...allowedRoles) => {
     if (!userRole) return next(new AppError("Authentication required", 401));
     // every is used for read or export allowed role simultaneously
     const hasPermission = allowedRoles.every((permission) => {
-      console.log(permission);
       return userPermission.includes(permission);
     });
 
