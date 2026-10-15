@@ -39,4 +39,17 @@ const invitationSchema = z.object({
   email: z.string().trim().email(),
 });
 
-export { registrationSchema, loginSchema, customerSchema, invitationSchema };
+const acceptInvitationSchema = z.object({
+  token: z.string().trim().min(1).max(100),
+  password: z.string().min(8),
+  name: z.string().min(5).max(20),
+  phone: z.string().regex(/^[6-9]\d{9}$/),
+});
+
+export {
+  registrationSchema,
+  loginSchema,
+  customerSchema,
+  invitationSchema,
+  acceptInvitationSchema,
+};

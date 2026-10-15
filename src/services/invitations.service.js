@@ -1,9 +1,9 @@
-import { randomBytes, createHash } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import Invitation from "../models/invitation.model.js";
+import { hashInvitationToken } from "../utils/hashInvitationToken.js";
+import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
-
-// hash the token
-const hashToken = (token) => createHash("sha256").update(token).digest("hex");
+import mongoose from "mongoose";
 
 // create invitation service
 const createInvitationService = async (organizationId, email, invitedBy) => {
@@ -15,6 +15,7 @@ const createInvitationService = async (organizationId, email, invitedBy) => {
     email: normalizedEmail,
   });
   if (invitationExist) {
+    // return { invitationExist };
     throw new AppError("Invitation is already created", 409);
   }
 
@@ -36,11 +37,11 @@ const createInvitationService = async (organizationId, email, invitedBy) => {
 
   //   generate a cryptographically random token
   const token = randomBytes(32).toString("base64url");
-  if (!token) throw new AppError("Token is generated", 400);
-  const tokenHash = hashToken(token);
-  if (!tokenHash) throw new AppError("Hash token is not generate", 400);
+  if (!token) throw new AppError("Token is not generated", 400);
+  const tokenHash = hashInvitationToken(token);
+  if (!tokenHash) throw new AppError("Hash token is not generated", 400);
 
-  let expiresAt = new Date(Date.now() + 48 * 24 * 24 * 1000);
+  let expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
   try {
     await Invitation.create({
       email: normalizedEmail,
@@ -61,4 +62,90 @@ const createInvitationService = async (organizationId, email, invitedBy) => {
   return { token, expiresAt, email: normalizedEmail };
 };
 
-export default createInvitationService;
+const acceptInvitationService = async ({ token, name, password, phone }) => {
+  if (typeof token !== "string" || token.length === 0) {
+    throw new AppError("token is required", 401);
+  }
+
+  const tokenHash = hashInvitationToken(token);
+
+  let createdUser;
+  const session = await mongoose.startSession();
+  // find a valid, unexpired, or pending invitation
+  try {
+    await session.withTransaction(async () => {
+      const invitation = await Invitation.findOne({
+        tokenHash,
+        status: "pending",
+        acceptedAt: null,
+        expiresAt: { $gt: new Date() },
+      }).session(session);
+
+      if (!invitation) {
+        throw new AppError("token is invalid, expired or used", 400);
+      }
+
+      // update the invitation with in the transaction;
+      const claimed = await Invitation.updateOne(
+        {
+          _id: invitation._id,
+          status: "pending",
+          acceptedAt: null,
+          expiresAt: { $gt: new Date() },
+        },
+        {
+          $set: {
+            acceptedAt: new Date(),
+            status: "accepted",
+          },
+        },
+        { session },
+      );
+
+      if (claimed.modifiedCount !== 1) {
+        throw new AppError(
+          "Invitation is invalid, expired or already User",
+          400,
+        );
+      }
+
+      // create the member
+      const users = await User.create(
+        [
+          {
+            name,
+            email: invitation.email,
+            phone,
+            password,
+            role: "member",
+            organizationId: invitation.organizationId,
+          },
+        ],
+        { session },
+      );
+      createdUser = users[0];
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      throw new AppError(
+        "An account with this email already exists in this organization",
+        409,
+      );
+    }
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+
+  const { id, email, role, organizationId } = createdUser;
+  return {
+    id,
+    name: createdUser.name,
+    email,
+    phone: createdUser.phone,
+    role,
+    organizationId,
+  };
+};
+
+export { createInvitationService, acceptInvitationService };
