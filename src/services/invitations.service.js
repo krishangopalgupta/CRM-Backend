@@ -42,8 +42,10 @@ const createInvitationService = async (organizationId, email, invitedBy) => {
   if (!tokenHash) throw new AppError("Hash token is not generated", 400);
 
   let expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+  let member;
   try {
-    await Invitation.create({
+    member = await Invitation.create({
       email: normalizedEmail,
       organizationId,
       invitedBy,
@@ -59,7 +61,7 @@ const createInvitationService = async (organizationId, email, invitedBy) => {
     throw error;
   }
 
-  return { token, expiresAt, email: normalizedEmail };
+  return { token, expiresAt, email: normalizedEmail, _id: member?._id };
 };
 
 const acceptInvitationService = async ({ token, name, password, phone }) => {
@@ -148,4 +150,63 @@ const acceptInvitationService = async ({ token, name, password, phone }) => {
   };
 };
 
-export { createInvitationService, acceptInvitationService };
+const resendInvitationService = async (invitationId, organizationId) => {
+  const INVITATION_TTL_MS = 48 * 60 * 60 * 1000;
+  const RESEND_COOLDOWN_MS = 60 * 1000;
+
+  const invitation = await Invitation.findOne({
+    _id: invitationId,
+    organizationId,
+    status: "pending",
+  });
+
+  if (!invitation) {
+    throw new AppError("Pending invitation not found", 404);
+  }
+
+  const now = new Date();
+  const cooldownBefore = new Date(now.getTime() - RESEND_COOLDOWN_MS);
+
+  const token = randomBytes(32).toString("base64url");
+  const hashedToken = hashInvitationToken(token);
+
+  let expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
+  const doesMemberExist = await Invitation.findOneAndUpdate(
+    {
+      _id: invitationId,
+      organizationId,
+      status: "pending",
+      $or: [{ lastSendAt: null }, { lastSendAt: { $lte: cooldownBefore } }],
+    },
+    {
+      $set: {
+        tokenHash: hashedToken,
+        expiresAt,
+        lastSendAt: now,
+      },
+    },
+    {
+      returnDocument: "after",
+      runValidators: true,
+    },
+  );
+
+  if (!doesMemberExist) {
+    throw new AppError(
+      "Invitation is resent recently or is no longer pending",
+      429,
+    );
+  }
+
+  return {
+    token,
+    expiresAt,
+    email: doesMemberExist.email,
+    _id: doesMemberExist?._id,
+  };
+};
+export {
+  createInvitationService,
+  acceptInvitationService,
+  resendInvitationService,
+};

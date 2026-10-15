@@ -4,6 +4,7 @@ const router = Router();
 import {
   inviteMember,
   invitationAccept,
+  resendInvitation,
 } from "../controllers/invitation.controller.js";
 import asyncHandler from "../middleware/asyncHandler.middleware.js";
 import authenticate from "../middleware/auth.middleware.js";
@@ -27,6 +28,12 @@ router.post(
   authorizeRole("member:invite"),
   validate(invitationSchema),
   asyncHandler(inviteMember),
+);
+
+router.post(
+  "/resend-invitation/:id",
+  authorizeRole("member:invite"),
+  asyncHandler(resendInvitation),
 );
 
 export default router;

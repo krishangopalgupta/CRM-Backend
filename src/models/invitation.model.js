@@ -37,6 +37,10 @@ const invitationSchema = new Schema(
       required: true,
       default: "pending",
     },
+    lastSendAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );
