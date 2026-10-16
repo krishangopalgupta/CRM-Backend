@@ -32,7 +32,6 @@ const getAllCustomer = async (req, res) => {
     throw new AppError("search must be at most 100 character", 400);
 
   const { limit, cursor, sort } = pageLimit(req.query);
-  console.log("limit", limit, cursor, sort);
 
   const result = await getAllCustomerService(
     req.user?.organizationId,

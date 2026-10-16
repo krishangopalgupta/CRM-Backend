@@ -2,7 +2,10 @@ import {
   createInvitationService,
   acceptInvitationService,
   resendInvitationService,
+  getAllInvitationService,
 } from "../services/invitations.service.js";
+
+import { pageLimit } from "../utils/pagination.js";
 import AppError from "../utils/AppError.js";
 
 const inviteMember = async (req, res) => {
@@ -68,4 +71,34 @@ const resendInvitation = async (req, res) => {
   });
 };
 
-export { inviteMember, invitationAccept, resendInvitation };
+const allInvitations = async (req, res) => {
+  const search = req.query.search ? req.query.search.trim() : "";
+  if (search.length > 100)
+    throw new AppError("search must be at most 100 character", 400);
+
+  const { limit, cursor, sort } = pageLimit(req.query);
+  const status = req.query.status;
+  if(!["pending", "revoked", "accepted"].includes(status)){
+    throw new AppError("Invalid Status", 400);
+  }
+  
+  const result = await getAllInvitationService(
+    req.user?.organizationId,
+    limit,
+    search,
+    sort,
+    cursor,
+    status,
+  );
+
+  return res.status(200).json({
+    success: true,
+    result: result.invitations,
+    pagination: {
+      limit,
+      hasNextPage: result.hasNextPage,
+      nextCursor: result.nextCursor,
+    },
+  });
+};
+export { inviteMember, invitationAccept, resendInvitation, allInvitations };

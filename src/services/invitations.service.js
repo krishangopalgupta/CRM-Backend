@@ -4,6 +4,7 @@ import { hashInvitationToken } from "../utils/hashInvitationToken.js";
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import mongoose from "mongoose";
+import { encodeCursor, pageLimit, decodeCursor } from "../utils/pagination.js";
 
 // create invitation service
 const createInvitationService = async (organizationId, email, invitedBy) => {
@@ -161,7 +162,7 @@ const resendInvitationService = async (invitationId, organizationId) => {
   });
 
   if (!invitation) {
-    throw new AppError("Pending invitation not found", 404);
+    throw new AppError("No Invitation Found", 404);
   }
 
   const now = new Date();
@@ -205,8 +206,69 @@ const resendInvitationService = async (invitationId, organizationId) => {
     _id: doesMemberExist?._id,
   };
 };
+
+const getAllInvitationService = async (
+  organizationId,
+  limit,
+  search = "",
+  sort = "newest",
+  cursorValue,
+  status = "pending",
+) => {
+  const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  console.log(status);
+  // restrict the query to the organization filter
+  const filter = { organizationId };
+  if (search) {
+    const searchRegex = new RegExp(escapeRegex(search), "i");
+    filter.$or = [{ email: searchRegex }];
+  }
+
+  filter.status = status;
+  const operator = sort === "newest" ? "$lt" : "$gt";
+  if (cursorValue) {
+    const cursor = decodeCursor(cursorValue, organizationId);
+    filter.$and = [
+      {
+        $or: [
+          { createdAt: { [operator]: cursor.createdAt } },
+          {
+            createdAt: cursor.createdAt,
+            _id: { [operator]: cursor.id },
+          },
+        ],
+      },
+    ];
+  }
+
+  let sortOrder = {};
+  if (sort === "oldest") sortOrder = { createdAt: 1, _id: 1 };
+  else sortOrder = { createdAt: -1, _id: -1 };
+
+  const invitations = await Invitation.find(filter)
+    .populate("organizationId", "orgName orgSlug")
+    .sort(sortOrder)
+    .limit(limit + 1);
+
+  const hasNextPage = invitations.length > limit;
+  if (hasNextPage) invitations.pop();
+
+  const lastInvitation = invitations.at(-1);
+
+  return {
+    invitations,
+    hasNextPage,
+    nextCursor:
+      hasNextPage && lastInvitation
+        ? encodeCursor(lastInvitation, organizationId)
+        : null,
+  };
+};
+
 export {
   createInvitationService,
   acceptInvitationService,
   resendInvitationService,
+  getAllInvitationService,
 };

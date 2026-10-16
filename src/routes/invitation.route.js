@@ -5,6 +5,7 @@ import {
   inviteMember,
   invitationAccept,
   resendInvitation,
+  allInvitations,
 } from "../controllers/invitation.controller.js";
 import asyncHandler from "../middleware/asyncHandler.middleware.js";
 import authenticate from "../middleware/auth.middleware.js";
@@ -36,4 +37,9 @@ router.post(
   asyncHandler(resendInvitation),
 );
 
+router.get(
+  "/all-invitations",
+  authorizeRole("member:read"),
+  asyncHandler(allInvitations),
+);
 export default router;
