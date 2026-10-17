@@ -1,7 +1,8 @@
 import {
   createInvitationService,
   acceptInvitationService,
-  resendInvitationService,
+  resendInvitationServive,
+  // resendPendingInvitationService,
   getAllInvitationService,
 } from "../services/invitations.service.js";
 
@@ -48,7 +49,8 @@ const invitationAccept = async (req, res) => {
 
 const resendInvitation = async (req, res) => {
   const invitationId = req.params.id;
-  const invitation = await resendInvitationService(
+
+  const invitation = await resendInvitationServive(
     invitationId,
     req.user?.organizationId,
   );
@@ -77,11 +79,11 @@ const allInvitations = async (req, res) => {
     throw new AppError("search must be at most 100 character", 400);
 
   const { limit, cursor, sort } = pageLimit(req.query);
-  const status = req.query.status;
-  if(!["pending", "revoked", "accepted"].includes(status)){
+  const status = req.query.status ?? "pending";
+  if (!["pending", "revoked", "accepted"].includes(status)) {
     throw new AppError("Invalid Status", 400);
   }
-  
+
   const result = await getAllInvitationService(
     req.user?.organizationId,
     limit,
@@ -102,4 +104,5 @@ const allInvitations = async (req, res) => {
   });
 };
 
+// const resendRevokedInvitation = async (req, res) => {};
 export { inviteMember, invitationAccept, resendInvitation, allInvitations };

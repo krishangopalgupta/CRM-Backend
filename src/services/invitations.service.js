@@ -6,8 +6,81 @@ import AppError from "../utils/AppError.js";
 import mongoose from "mongoose";
 import { encodeCursor, pageLimit, decodeCursor } from "../utils/pagination.js";
 
+// invitationId checker
+const isValidInvitationId = (invitationId) => {
+  if (!mongoose.isValidObjectId(invitationId))
+    throw new AppError("Invalid invitationId", 400);
+};
+
+// organizationId checker
+const isValidOrganizationId = (organizationId) => {
+  if (!mongoose.isValidObjectId(organizationId))
+    throw new AppError("Invalid organizationId", 400);
+};
+
+// resend Invitation
+const resendInvitationServive = async (invitationId, organizationId) => {
+  isValidInvitationId(invitationId);
+  isValidOrganizationId(organizationId);
+
+  const invitation = await Invitation.findOne({
+    _id: invitationId,
+    organizationId,
+  });
+  
+  if (!invitation) {
+    throw new AppError("No Invitation Found", 404);
+  }
+
+  if (invitation.status === "accepted")
+    throw new AppError("This invitation is already been accepted", 400);
+
+  const token = randomBytes(32).toString("base64url");
+  const hashedToken = hashInvitationToken(token);
+
+  const INVITATION_TTL_MS = 48 * 60 * 60 * 1000;
+  const RESEND_COOLDOWN_MS = 60 * 1000;
+
+  const now = new Date();
+  const cooldownBefore = new Date(now.getTime() - RESEND_COOLDOWN_MS);
+
+  let expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
+  const doesMemberExist = await Invitation.findOneAndUpdate(
+    {
+      _id: invitationId,
+      organizationId,
+      $or: [{ lastSendAt: null }, { lastSendAt: { $lte: cooldownBefore } }],
+    },
+    {
+      $set: {
+        tokenHash: hashedToken,
+        expiresAt,
+        status: "pending",
+        lastSendAt: now,
+      },
+    },
+    {
+      returnDocument: "after",
+      runValidators: true,
+    },
+  );
+
+  if (!doesMemberExist) {
+    throw new AppError(
+      "Invitation is resent recently or is no longer pending",
+      429,
+    );
+  }
+
+  return {
+    token,
+    expiresAt,
+    email: doesMemberExist?.email,
+  };
+};
 // create invitation service
 const createInvitationService = async (organizationId, email, invitedBy) => {
+  isValidOrganizationId(organizationId);
   const normalizedEmail = email.trim().toLowerCase();
 
   //   Don't invite an existing email member again
@@ -65,6 +138,7 @@ const createInvitationService = async (organizationId, email, invitedBy) => {
   return { token, expiresAt, email: normalizedEmail, _id: member?._id };
 };
 
+// accept invitation Service
 const acceptInvitationService = async ({ token, name, password, phone }) => {
   if (typeof token !== "string" || token.length === 0) {
     throw new AppError("token is required", 401);
@@ -151,62 +225,7 @@ const acceptInvitationService = async ({ token, name, password, phone }) => {
   };
 };
 
-const resendInvitationService = async (invitationId, organizationId) => {
-  const INVITATION_TTL_MS = 48 * 60 * 60 * 1000;
-  const RESEND_COOLDOWN_MS = 60 * 1000;
-
-  const invitation = await Invitation.findOne({
-    _id: invitationId,
-    organizationId,
-    status: "pending",
-  });
-
-  if (!invitation) {
-    throw new AppError("No Invitation Found", 404);
-  }
-
-  const now = new Date();
-  const cooldownBefore = new Date(now.getTime() - RESEND_COOLDOWN_MS);
-
-  const token = randomBytes(32).toString("base64url");
-  const hashedToken = hashInvitationToken(token);
-
-  let expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
-  const doesMemberExist = await Invitation.findOneAndUpdate(
-    {
-      _id: invitationId,
-      organizationId,
-      status: "pending",
-      $or: [{ lastSendAt: null }, { lastSendAt: { $lte: cooldownBefore } }],
-    },
-    {
-      $set: {
-        tokenHash: hashedToken,
-        expiresAt,
-        lastSendAt: now,
-      },
-    },
-    {
-      returnDocument: "after",
-      runValidators: true,
-    },
-  );
-
-  if (!doesMemberExist) {
-    throw new AppError(
-      "Invitation is resent recently or is no longer pending",
-      429,
-    );
-  }
-
-  return {
-    token,
-    expiresAt,
-    email: doesMemberExist.email,
-    _id: doesMemberExist?._id,
-  };
-};
-
+// get all invitation service
 const getAllInvitationService = async (
   organizationId,
   limit,
@@ -215,9 +234,10 @@ const getAllInvitationService = async (
   cursorValue,
   status = "pending",
 ) => {
+  isValidOrganizationId(organizationId);
+
   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  console.log(status);
   // restrict the query to the organization filter
   const filter = { organizationId };
   if (search) {
@@ -269,6 +289,6 @@ const getAllInvitationService = async (
 export {
   createInvitationService,
   acceptInvitationService,
-  resendInvitationService,
+  resendInvitationServive,
   getAllInvitationService,
 };
