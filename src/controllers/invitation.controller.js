@@ -101,4 +101,5 @@ const allInvitations = async (req, res) => {
     },
   });
 };
+
 export { inviteMember, invitationAccept, resendInvitation, allInvitations };

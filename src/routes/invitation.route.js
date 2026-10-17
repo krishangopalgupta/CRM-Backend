@@ -26,20 +26,20 @@ router.post(
 router.use(authenticate);
 router.post(
   "/invite-member",
-  authorizeRole("member:invite"),
+  authorizeRole("invitation:create"),
   validate(invitationSchema),
   asyncHandler(inviteMember),
 );
 
 router.post(
   "/resend-invitation/:id",
-  authorizeRole("member:invite"),
+  authorizeRole("invitation:create"),
   asyncHandler(resendInvitation),
 );
 
 router.get(
   "/all-invitations",
-  authorizeRole("member:read"),
+  authorizeRole("invitation:read"),
   asyncHandler(allInvitations),
 );
 export default router;

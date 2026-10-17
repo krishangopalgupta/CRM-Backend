@@ -5,7 +5,7 @@ export const rolePermissions = {
     "customer:read",
     "customer:update",
     "customer:delete",
-    "member:invite",
-    "member:read"
+    "invitation:create",
+    "invitation:read"
   ],
 };
