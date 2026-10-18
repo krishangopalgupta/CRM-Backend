@@ -53,15 +53,11 @@ const getAllCustomer = async (req, res) => {
 };
 
 const updateCustomer = async (req, res) => {
-  const result = await updateCustomerService(
-    req.params.id,
-    req.body,
-    req.user,
-  );
+  const result = await updateCustomerService(req.params.id, req.body, req.user);
 
   return res.status(200).json({
     success: true,
-    result,
+    result: result ?? "Data is not being changed",
   });
 };
 

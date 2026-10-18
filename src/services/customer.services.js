@@ -1,7 +1,9 @@
+import mongoose from "mongoose";
 import Customer from "../models/customer.model.js";
 import { decodeCursor, encodeCursor } from "../utils/pagination.js";
 import AppError from "../utils/AppError.js";
 import { isValidObjectId } from "../validations/ObjectIdValidations.js";
+import customerActivity from "../models/customerActivity.model.js";
 
 // create the customer
 const createCustomerService = async (
@@ -13,21 +15,48 @@ const createCustomerService = async (
 
   const { name, email, phone } = customerData;
 
-  const doesEmailAlreadyExist = await Customer.findOne({
-    organizationId,
-    $or: [{ email }, { phone }],
-  });
-  if (doesEmailAlreadyExist)
-    throw new AppError("customer is already exist", 409);
+  const session = await mongoose.startSession();
+  let customer;
+  try {
+    await session.withTransaction(async () => {
+      const doesEmailAlreadyExist = await Customer.findOne({
+        organizationId,
+        $or: [{ email }, { phone }],
+      }).session(session);
 
-  const customer = await Customer.create({
-    name,
-    email,
-    phone,
-    organizationId,
-    createdBy: userId,
-    lastUpdatedBy: userId,
-  });
+      if (doesEmailAlreadyExist)
+        throw new AppError("customer is already exist", 409);
+
+      [customer] = await Customer.create(
+        [
+          {
+            name,
+            email,
+            phone,
+            organizationId,
+            createdBy: userId,
+            lastUpdatedBy: userId,
+          },
+        ],
+        { session },
+      );
+
+      await customerActivity.create(
+        [
+          {
+            organizationId,
+            customerId: customer?._id,
+            performedBy: userId,
+            action: "customer.created",
+            changeFields: ["name", "email", "phone"],
+          },
+        ],
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
   await customer.populate("organizationId", "orgName orgSlug");
   return customer;
 };
@@ -114,20 +143,59 @@ const updateCustomerService = async (
   { organizationId, userId },
 ) => {
   isValidObjectId(customerId, "customerId");
-  const { name, email, phone } = customerData;
+  isValidObjectId(userId, "userId");
 
-  const updatedData = {};
-  if (name) updatedData.name = name;
-  if (phone) updatedData.phone = phone;
-  if (email) updatedData.email = email;
+  const session = await mongoose.startSession();
 
-  const customer = await Customer.findByIdAndUpdate(
-    { _id: customerId, organizationId },
-    { $set: updatedData, lastUpdatedBy: userId },
-    { returnDocument: "after", runValidators: true },
-  );
-  if (!customer) throw new AppError("customer not found", 404);
-  return customer;
+  let updatedCustomer;
+  try {
+    await session.withTransaction(async () => {
+      const existingCustomer = await Customer.findOne({
+        organizationId,
+        _id: customerId,
+      }).session(session);
+      if (!existingCustomer) throw new AppError("customer doesn't exist", 404);
+
+      const { name, email, phone } = customerData;
+      let updatedData = {};
+      if (name) updatedData.name = name;
+      if (phone) updatedData.phone = phone;
+      if (email) updatedData.email = email;
+
+      const changedFields = Object.keys(updatedData).filter(
+        (field) => existingCustomer[field] !== updatedData[field],
+      );
+
+      if (changedFields.length === 0) {
+        return;
+      }
+
+      updatedCustomer = await Customer.findOneAndUpdate(
+        {
+          organizationId,
+          _id: customerId,
+        },
+        { $set: updatedData, lastUpdatedBy: userId },
+        { returnDocument: "after", runValidators: true, session },
+      );
+
+      await customerActivity.create(
+        [
+          {
+            organizationId,
+            customerId,
+            performedBy: userId,
+            action: "customer.update",
+            changedFields,
+          },
+        ],
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
+  return updatedCustomer;
 };
 
 const deleteCustomerService = async (customerId, organizationId) => {

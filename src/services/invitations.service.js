@@ -67,6 +67,7 @@ const resendInvitationServive = async (invitationId, organizationId) => {
     email: doesMemberExist?.email,
   };
 };
+
 // create invitation service
 const createInvitationService = async (organizationId, email, invitedBy) => {
   isValidObjectId(organizationId, "organizationId");
