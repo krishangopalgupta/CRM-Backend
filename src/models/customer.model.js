@@ -21,6 +21,16 @@ const customerSchema = new Schema(
       ref: "Organization",
       required: true,
     },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    lastUpdatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true },
 );

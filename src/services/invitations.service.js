@@ -4,24 +4,13 @@ import { hashInvitationToken } from "../utils/hashInvitationToken.js";
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import mongoose from "mongoose";
-import { encodeCursor, pageLimit, decodeCursor } from "../utils/pagination.js";
-
-// invitationId checker
-const isValidInvitationId = (invitationId) => {
-  if (!mongoose.isValidObjectId(invitationId))
-    throw new AppError("Invalid invitationId", 400);
-};
-
-// organizationId checker
-const isValidOrganizationId = (organizationId) => {
-  if (!mongoose.isValidObjectId(organizationId))
-    throw new AppError("Invalid organizationId", 400);
-};
+import { encodeCursor, decodeCursor } from "../utils/pagination.js";
+import { isValidObjectId } from "../validations/ObjectIdValidations.js";
 
 // resend Invitation
 const resendInvitationServive = async (invitationId, organizationId) => {
-  isValidInvitationId(invitationId);
-  isValidOrganizationId(organizationId);
+  isValidObjectId(invitationId, "invitationId");
+  isValidObjectId(organizationId, "organizationId");
 
   const invitation = await Invitation.findOne({
     _id: invitationId,
@@ -80,7 +69,7 @@ const resendInvitationServive = async (invitationId, organizationId) => {
 };
 // create invitation service
 const createInvitationService = async (organizationId, email, invitedBy) => {
-  isValidOrganizationId(organizationId);
+  isValidObjectId(organizationId, "organizationId");
   const normalizedEmail = email.trim().toLowerCase();
 
   //   Don't invite an existing email member again
@@ -234,7 +223,7 @@ const getAllInvitationService = async (
   cursorValue,
   status = "pending",
 ) => {
-  isValidOrganizationId(organizationId);
+  isValidObjectId(organizationId, "organizationId");
 
   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 

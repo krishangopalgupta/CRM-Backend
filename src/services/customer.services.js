@@ -1,9 +1,16 @@
 import Customer from "../models/customer.model.js";
 import { decodeCursor, encodeCursor } from "../utils/pagination.js";
 import AppError from "../utils/AppError.js";
+import { isValidObjectId } from "../validations/ObjectIdValidations.js";
 
 // create the customer
-const createCustomerService = async (customerData, organizationId) => {
+const createCustomerService = async (
+  customerData,
+  { organizationId, userId },
+) => {
+  isValidObjectId(organizationId, "organizationId");
+  isValidObjectId(userId, "userId");
+
   const { name, email, phone } = customerData;
 
   const doesEmailAlreadyExist = await Customer.findOne({
@@ -18,6 +25,8 @@ const createCustomerService = async (customerData, organizationId) => {
     email,
     phone,
     organizationId,
+    createdBy: userId,
+    lastUpdatedBy: userId,
   });
   await customer.populate("organizationId", "orgName orgSlug");
   return customer;
@@ -25,6 +34,9 @@ const createCustomerService = async (customerData, organizationId) => {
 
 // get single customer
 const getCustomerService = async (customerId, organizationId) => {
+  isValidObjectId(customerId, "customerId");
+  isValidObjectId(organizationId, "organizationId");
+
   const customer = await Customer.findOne({
     _id: customerId,
     organizationId,
@@ -33,7 +45,6 @@ const getCustomerService = async (customerId, organizationId) => {
   if (!customer) throw new AppError("customer not found");
   return customer;
 };
-
 
 // get all customer
 const getAllCustomerService = async (
@@ -99,9 +110,10 @@ const getAllCustomerService = async (
 // update customer
 const updateCustomerService = async (
   customerId,
-  organizationId,
   customerData,
+  { organizationId, userId },
 ) => {
+  isValidObjectId(customerId, "customerId");
   const { name, email, phone } = customerData;
 
   const updatedData = {};
@@ -111,7 +123,7 @@ const updateCustomerService = async (
 
   const customer = await Customer.findByIdAndUpdate(
     { _id: customerId, organizationId },
-    { $set: updatedData },
+    { $set: updatedData, lastUpdatedBy: userId },
     { returnDocument: "after", runValidators: true },
   );
   if (!customer) throw new AppError("customer not found", 404);
@@ -126,6 +138,7 @@ const deleteCustomerService = async (customerId, organizationId) => {
   if (!customer) throw new AppError("customer not found", 404);
   return customer;
 };
+
 export {
   createCustomerService,
   getCustomerService,

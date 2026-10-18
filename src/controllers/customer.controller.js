@@ -9,7 +9,7 @@ import AppError from "../utils/AppError.js";
 import { pageLimit } from "../utils/pagination.js";
 
 const createcustomer = async (req, res) => {
-  const result = await createCustomerService(req.body, req.user.organizationId);
+  const result = await createCustomerService(req.body, req.user);
   return res
     .status(201)
     .json({ success: true, message: "customer created successfully", result });
@@ -55,8 +55,8 @@ const getAllCustomer = async (req, res) => {
 const updateCustomer = async (req, res) => {
   const result = await updateCustomerService(
     req.params.id,
-    req.user.organizationId,
     req.body,
+    req.user,
   );
 
   return res.status(200).json({

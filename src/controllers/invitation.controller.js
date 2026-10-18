@@ -2,7 +2,6 @@ import {
   createInvitationService,
   acceptInvitationService,
   resendInvitationServive,
-  // resendPendingInvitationService,
   getAllInvitationService,
 } from "../services/invitations.service.js";
 
@@ -104,5 +103,4 @@ const allInvitations = async (req, res) => {
   });
 };
 
-// const resendRevokedInvitation = async (req, res) => {};
 export { inviteMember, invitationAccept, resendInvitation, allInvitations };
