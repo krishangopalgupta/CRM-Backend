@@ -6,7 +6,6 @@ import {
   invitationAccept,
   resendInvitation,
   allInvitations,
-  // resendRevokedInvitation
 } from "../controllers/invitation.controller.js";
 import asyncHandler from "../middleware/asyncHandler.middleware.js";
 import authenticate from "../middleware/auth.middleware.js";
