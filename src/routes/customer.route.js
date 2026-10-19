@@ -7,6 +7,7 @@ import {
   getAllCustomer,
   updateCustomer,
   deleteCustomer,
+  customerActivityHistory,
 } from "../controllers/customer.controller.js";
 
 // validation
@@ -22,31 +23,48 @@ import authorizeRole from "../middleware/authorizeRole.middleware.js";
 const router = express.Router();
 
 router.use(authenticate);
+
+// create customer
 router.post(
   "/create-customer",
   authorizeRole("customer:create"),
   validate(customerSchema),
   asyncHandler(createcustomer),
 );
+
+// get single customer
 router.get(
   "/get-customer/:id",
   authorizeRole("customer:read"),
   asyncHandler(getCustomer),
 );
+
+// get all customer
 router.get(
   "/get-all-customers",
   authorizeRole("customer:read"),
   asyncHandler(getAllCustomer),
 );
+
+// update customer
 router.put(
   "/update-customer/:id",
   authorizeRole("customer:update"),
   asyncHandler(updateCustomer),
 );
+
+// delete customer
 router.delete(
   "/delete-customer/:id",
   authorizeRole("customer:delete"),
   asyncHandler(deleteCustomer),
+);
+
+// get customer activity
+router.get(
+  "/:id/activity",
+  authorizeRole("customer:read"),
+  asyncHandler(customerActivityHistory),
 );
 
 export default router;

@@ -4,6 +4,7 @@ import {
   getAllCustomerService,
   updateCustomerService,
   deleteCustomerService,
+  customerActivityHistoryService,
 } from "../services/customer.services.js";
 import AppError from "../utils/AppError.js";
 import { pageLimit } from "../utils/pagination.js";
@@ -61,6 +62,23 @@ const updateCustomer = async (req, res) => {
   });
 };
 
+const customerActivityHistory = async (req, res) => {
+  const { limit, cursor, sort } = pageLimit(req.query);
+  const result = await customerActivityHistoryService(
+    req.params?.id,
+    req.user?.organizationId,
+    limit,
+    cursor,
+    sort,
+    req.query.search,
+  );
+
+  return res.status(200).json({
+    success: true,
+    result: result ?? [],
+  });
+};
+
 const deleteCustomer = async (req, res) => {
   const result = await deleteCustomerService(
     req.params.id,
@@ -77,4 +95,5 @@ export {
   getAllCustomer,
   updateCustomer,
   deleteCustomer,
+  customerActivityHistory,
 };

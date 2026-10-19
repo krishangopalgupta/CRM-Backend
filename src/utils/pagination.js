@@ -28,10 +28,10 @@ const pageLimit = (q) => {
   return { limit, cursor, sort };
 };
 
-const encodeCursor = (customer, organizationId) => {
+const encodeCursor = (object, organizationId) => {
   const cursorData = {
-    createdAt: customer.createdAt.toISOString(),
-    id: customer._id.toString(),
+    createdAt: object.createdAt.toISOString(),
+    id: object._id.toString(),
     organizationId: organizationId.toString(),
   };
 

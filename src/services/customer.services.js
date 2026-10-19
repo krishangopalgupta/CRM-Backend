@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import { mongoose, Types } from "mongoose";
 import Customer from "../models/customer.model.js";
 import { decodeCursor, encodeCursor } from "../utils/pagination.js";
 import AppError from "../utils/AppError.js";
@@ -66,12 +66,56 @@ const getCustomerService = async (customerId, organizationId) => {
   isValidObjectId(customerId, "customerId");
   isValidObjectId(organizationId, "organizationId");
 
-  const customer = await Customer.findOne({
-    _id: customerId,
-    organizationId,
-  }).populate("organizationId", "orgName orgSlug");
+  const customerObjectId = new mongoose.Types.ObjectId(customerId);
+  const organizationObjectId = new mongoose.Types.ObjectId(organizationId);
 
-  if (!customer) throw new AppError("customer not found");
+  const customer = await Customer.aggregate([
+    {
+      $match: {
+        _id: customerObjectId,
+        organizationId: organizationObjectId,
+      },
+    },
+    {
+      $lookup: {
+        from: "organizations",
+        localField: "organizationId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              orgName: 1,
+              orgEmail: 1,
+              orgSlug: 1,
+            },
+          },
+        ],
+
+        as: "organizationDetails",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$organizationDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        email: 1,
+        phone: 1,
+        createdBy: 1,
+        lastUpdatedBy: 1,
+        organizationDetails: 1,
+      },
+    },
+  ]);
+
   return customer;
 };
 
@@ -207,8 +251,187 @@ const updateCustomerService = async (
   return { updatedCustomer, customerUpdateHistory };
 };
 
-// customer activity history
+// const customerActivityHistoryService = async (
+//   customerId,
+//   organizationId,
+//   limit,
+//   cursor,
+//   sort,
+//   search,
+// ) => {
+//   isValidObjectId(customerId, "customerId");
+//   isValidObjectId(organizationId, "organizationId");
 
+//   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+//   const filter = { organizationId, customerId };
+//   if (search) {
+//     const searchRegex = new RegExp(escapeRegex(search), "i");
+//     filter.$or = [
+//       { name: searchRegex },
+//       { email: searchRegex },
+//       { phone: searchRegex },
+//     ];
+//   }
+
+//   const operator = sort === "newest" ? "$lt" : "$gt";
+//   if (cursor) {
+//     const cursorValue = decodeCursor(cursor, organizationId);
+//     filter.$and = [
+//       {
+//         $or: [
+//           { createdAt: { [operator]: cursorValue.createdAt } },
+//           {
+//             createdAt: cursorValue.createdAt,
+//             _id: { [operator]: cursorValue.id },
+//           },
+//         ],
+//       },
+//     ];
+//   }
+
+//   let sortOrder = {};
+//   if (sort === "oldest") sortOrder = { createdAt: 1, _id: 1 };
+//   else sortOrder = { createdAt: -1, _id: -1 };
+
+//   const activities = await customerActivity
+//     .find(filter)
+//     .sort(sortOrder)
+//     .limit(limit + 1);
+//   if (!activities) throw new AppError("customer activity not found");
+
+//   const hasNextPage = activities.length > limit;
+//   if (hasNextPage) activities.pop();
+
+//   const lastCustomer = activities.at(-1);
+//   return {
+//     activities,
+//     hasNextPage,
+//     nextCursor:
+//       hasNextPage && lastCustomer
+//         ? encodeCursor(lastCustomer, organizationId)
+//         : null,
+//   };
+// };
+
+// aggregation Pipeline customer activity History
+
+const customerActivityHistoryService = async (
+  customerId,
+  organizationId,
+  limit,
+  cursor,
+  sort,
+  search = "",
+) => {
+  isValidObjectId(customerId);
+  isValidObjectId(organizationId);
+
+  const customerObjectId = new mongoose.Types.ObjectId(customerId);
+  const organizationObjectId = new mongoose.Types.ObjectId(organizationId);
+
+  const customerExist = await customerActivity.exists({
+    customerId: customerObjectId,
+    organizationId: organizationObjectId,
+  });
+  if (!customerExist) throw new AppError("customer doesn't exist", 404);
+
+  const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const filter = {
+    _id: customerObjectId,
+    organizationId: organizationObjectId,
+  };
+
+  if (search) {
+    const searchRegex = new RegExp(escapeRegex(search), "i");
+    filter.$or = [
+      { performedBy: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex },
+    ];
+  }
+
+  const operator = sort === "newest" ? "$lt" : "$gt";
+  if (cursor) {
+    const decodedCursorValue = decodeCursor(cursor, organizationId);
+    filter.$and = [
+      {
+        $or: [
+          { createdAt: { [operator]: decodedCursorValue.createdAt } },
+          {
+            createdAt: decodedCursorValue.createdAt,
+            _id: {
+              [operator]: new mongoose.Types.ObjectId(decodedCursorValue?.id),
+            },
+          },
+        ],
+      },
+    ];
+  }
+
+  let sortOrder =
+    sort === "newest" ? { createdAt: -1, _id: -1 } : { createdAt: 1, _id: 1 };
+  const activity = await customerActivity.aggregate([
+    { $match: filter },
+    { $sort: sortOrder },
+    { $limit: limit + 1 },
+
+    {
+      $lookup: {
+        from: "users",
+        localField: "performedBy",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              role: 1,
+              phone: 1,
+            },
+          },
+        ],
+        as: "performer",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$performer",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        organizationId: 1,
+        customerId: 1,
+        performedBy: 1,
+        action: 1,
+        changes: 1,
+        createdAt: 1,
+        performer: 1,
+      },
+    },
+  ]);
+
+  let hasNextPage = activity.length > limit;
+  if (hasNextPage) activity.pop();
+
+  const lastActivity = activity.at(-1);
+  return {
+    activity,
+    hasNextPage,
+    nextCursor:
+      lastActivity && hasNextPage
+        ? encodeCursor(lastActivity, organizationId)
+        : null,
+  };
+};
+
+// customer delete service
 const deleteCustomerService = async (customerId, organizationId) => {
   const customer = await Customer.findOneAndDelete({
     _id: customerId,
@@ -224,4 +447,5 @@ export {
   getAllCustomerService,
   updateCustomerService,
   deleteCustomerService,
+  customerActivityHistoryService,
 };
