@@ -22,8 +22,24 @@ const customerActivitySchema = new Schema(
       enum: ["customer.created", "customer.update"],
       required: true,
     },
-    changedFields: {
-      type: [String],
+
+    changes: {
+      type: [
+        {
+          field: {
+            type: String,
+            required: true,
+          },
+          oldValue: {
+            type: Schema.Types.Mixed,
+            default: null,
+          },
+          newValue: {
+            type: Schema.Types.Mixed,
+            default: null,
+          },
+        },
+      ],
       default: [],
     },
   },

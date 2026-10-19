@@ -147,7 +147,7 @@ const updateCustomerService = async (
 
   const session = await mongoose.startSession();
 
-  let updatedCustomer;
+  let updatedCustomer, customerUpdateHistory;
   try {
     await session.withTransaction(async () => {
       const existingCustomer = await Customer.findOne({
@@ -162,11 +162,20 @@ const updateCustomerService = async (
       if (phone) updatedData.phone = phone;
       if (email) updatedData.email = email;
 
-      const changedFields = Object.keys(updatedData).filter(
-        (field) => existingCustomer[field] !== updatedData[field],
-      );
+      const changes = Object.keys(updatedData)
+        .filter((field) => {
+          return existingCustomer[field] !== updatedData[field];
+        })
+        .map((field) => {
+          return {
+            field,
+            oldValue: existingCustomer[field],
+            newValue: updatedData[field],
+          };
+        });
 
-      if (changedFields.length === 0) {
+      if (changes.length === 0) {
+        console.log(changes);
         return;
       }
 
@@ -179,14 +188,14 @@ const updateCustomerService = async (
         { returnDocument: "after", runValidators: true, session },
       );
 
-      await customerActivity.create(
+      [customerUpdateHistory] = await customerActivity.create(
         [
           {
             organizationId,
             customerId,
             performedBy: userId,
             action: "customer.update",
-            changedFields,
+            changes,
           },
         ],
         { session },
@@ -195,8 +204,10 @@ const updateCustomerService = async (
   } finally {
     await session.endSession();
   }
-  return updatedCustomer;
+  return { updatedCustomer, customerUpdateHistory };
 };
+
+// customer activity history
 
 const deleteCustomerService = async (customerId, organizationId) => {
   const customer = await Customer.findOneAndDelete({
