@@ -280,6 +280,7 @@ const deleteCustomerService = async (customerId, organizationId, userId) => {
             isDeleted: true,
             deletedBy: userId,
             deletedAt: new Date(),
+            lastUpdatedBy: userId,
           },
         },
         {
@@ -311,6 +312,60 @@ const deleteCustomerService = async (customerId, organizationId, userId) => {
   return customer;
 };
 
+// customer restored service
+const restoreCustomerService = async (customerId, organizationId, userId) => {
+  isValidObjectId(customerId);
+  isValidObjectId(organizationId);
+  isValidObjectId(userId);
+
+  const session = await mongoose.startSession();
+
+  let customer;
+  try {
+    // both the operation will happened inside the transaction if customer not found just revoked the transaction
+    await session.withTransaction(async () => {
+      customer = await Customer.findOneAndUpdate(
+        {
+          _id: customerId,
+          organizationId,
+          isDeleted: true,
+        },
+        {
+          $set: {
+            isDeleted: false,
+            deletedBy: null,
+            deletedAt: null,
+            lastUpdatedBy: userId,
+          },
+        },
+        {
+          returnDocument: "after",
+          runValidators: true,
+          session,
+        },
+      );
+
+      if (!customer) {
+        throw new AppError("Customer is either restored or doesn't exist", 404);
+      }
+
+      await customerActivity.create(
+        [
+          {
+            organizationId,
+            customerId,
+            performedBy: userId,
+            action: "customer.restored",
+          },
+        ],
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
+  return customer;
+};
 // customer activity history service
 const customerActivityHistoryService = async (
   customerId,
@@ -446,5 +501,6 @@ export {
   getAllCustomerService,
   updateCustomerService,
   deleteCustomerService,
+  restoreCustomerService,
   customerActivityHistoryService,
 };

@@ -4,6 +4,7 @@ import {
   getAllCustomerService,
   updateCustomerService,
   deleteCustomerService,
+  restoreCustomerService,
   customerActivityHistoryService,
 } from "../services/customer.services.js";
 import AppError from "../utils/AppError.js";
@@ -83,11 +84,22 @@ const deleteCustomer = async (req, res) => {
   const result = await deleteCustomerService(
     req.params.id,
     req.user.organizationId,
-    req.user?.userId
+    req.user?.userId,
   );
   return res
     .status(204)
-    .json({ success: true, message: "deleted successfully"});
+    .json({ success: true, message: "deleted successfully" });
+};
+
+const restoreCustomer = async (req, res) => {
+  const result = await restoreCustomerService(
+    req.params.id,
+    req.user.organizationId,
+    req.user?.userId,
+  );
+  return res
+    .status(200)
+    .json({ success: true, message: "customer restored successfully", result });
 };
 
 export {
@@ -96,5 +108,6 @@ export {
   getAllCustomer,
   updateCustomer,
   deleteCustomer,
+  restoreCustomer,
   customerActivityHistory,
 };

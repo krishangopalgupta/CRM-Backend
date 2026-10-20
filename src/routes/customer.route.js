@@ -7,6 +7,7 @@ import {
   getAllCustomer,
   updateCustomer,
   deleteCustomer,
+  restoreCustomer,
   customerActivityHistory,
 } from "../controllers/customer.controller.js";
 
@@ -59,6 +60,9 @@ router.delete(
   authorizeRole("customer:delete"),
   asyncHandler(deleteCustomer),
 );
+
+// restore customer no need to for authorizeRole to restore customer as anyone can restore the customer
+router.put("/restore-customer/:id", asyncHandler(restoreCustomer));
 
 // get customer activity
 router.get(
