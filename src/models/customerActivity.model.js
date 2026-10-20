@@ -19,10 +19,9 @@ const customerActivitySchema = new Schema(
     },
     action: {
       type: String,
-      enum: ["customer.created", "customer.update"],
+      enum: ["customer.created", "customer.update", "customer.deleted"],
       required: true,
     },
-
     changes: {
       type: [
         {

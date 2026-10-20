@@ -83,10 +83,11 @@ const deleteCustomer = async (req, res) => {
   const result = await deleteCustomerService(
     req.params.id,
     req.user.organizationId,
+    req.user?.userId
   );
   return res
     .status(204)
-    .json({ success: true, message: "deleted successfully", result: result });
+    .json({ success: true, message: "deleted successfully"});
 };
 
 export {

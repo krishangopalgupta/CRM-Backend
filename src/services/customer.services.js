@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Customer from "../models/customer.model.js";
 import { decodeCursor, encodeCursor } from "../utils/pagination.js";
 import AppError from "../utils/AppError.js";
@@ -21,6 +21,7 @@ const createCustomerService = async (
     await session.withTransaction(async () => {
       const doesEmailAlreadyExist = await Customer.findOne({
         organizationId,
+        isDeleted: false,
         $or: [{ email }, { phone }],
       }).session(session);
 
@@ -66,14 +67,15 @@ const getCustomerService = async (customerId, organizationId) => {
   isValidObjectId(customerId, "customerId");
   isValidObjectId(organizationId, "organizationId");
 
-  const customerObjectId = new mongoose.Types.ObjectId(customerId);
-  const organizationObjectId = new mongoose.Types.ObjectId(organizationId);
+  const customerObjectId = new Types.ObjectId(customerId);
+  const organizationObjectId = new Types.ObjectId(organizationId);
 
   const customer = await Customer.aggregate([
     {
       $match: {
         _id: customerObjectId,
         organizationId: organizationObjectId,
+        isDeleted: false,
       },
     },
     {
@@ -116,6 +118,8 @@ const getCustomerService = async (customerId, organizationId) => {
     },
   ]);
 
+  if (customer.length === 0)
+    throw new AppError("customer is either deleted or doesn't exist", 404);
   return customer;
 };
 
@@ -130,7 +134,7 @@ const getAllCustomerService = async (
   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // restrict the query to the organization filter
-  const filter = { organizationId };
+  const filter = { organizationId, isDeleted: false };
   if (search) {
     const searchRegex = new RegExp(escapeRegex(search), "i");
     filter.$or = [
@@ -197,6 +201,7 @@ const updateCustomerService = async (
       const existingCustomer = await Customer.findOne({
         organizationId,
         _id: customerId,
+        isDeleted: false,
       }).session(session);
       if (!existingCustomer) throw new AppError("customer doesn't exist", 404);
 
@@ -227,6 +232,7 @@ const updateCustomerService = async (
         {
           organizationId,
           _id: customerId,
+          isDeleted: false,
         },
         { $set: updatedData, lastUpdatedBy: userId },
         { returnDocument: "after", runValidators: true, session },
@@ -249,6 +255,60 @@ const updateCustomerService = async (
     await session.endSession();
   }
   return { updatedCustomer, customerUpdateHistory };
+};
+
+// customer delete service
+const deleteCustomerService = async (customerId, organizationId, userId) => {
+  isValidObjectId(customerId);
+  isValidObjectId(organizationId);
+  isValidObjectId(userId);
+
+  const session = await mongoose.startSession();
+
+  let customer;
+  try {
+    // both the operation will happened inside the transaction if customer not found just revoked the transaction
+    await session.withTransaction(async () => {
+      customer = await Customer.findOneAndUpdate(
+        {
+          _id: customerId,
+          organizationId,
+          isDeleted: false,
+        },
+        {
+          $set: {
+            isDeleted: true,
+            deletedBy: userId,
+            deletedAt: new Date(),
+          },
+        },
+        {
+          returnDocument: "after",
+          runValidators: true,
+          session,
+        },
+      );
+
+      if (!customer) {
+        throw new AppError("Customer is either deleted or doesn't exist", 404);
+      }
+
+      await customerActivity.create(
+        [
+          {
+            organizationId,
+            customerId,
+            performedBy: userId,
+            action: "customer.deleted",
+          },
+        ],
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
+  return customer;
 };
 
 // customer activity history service
@@ -378,16 +438,6 @@ const customerActivityHistoryService = async (
         ? encodeCursor(lastActivity, organizationId)
         : null,
   };
-};
-
-// customer delete service
-const deleteCustomerService = async (customerId, organizationId) => {
-  const customer = await Customer.findOneAndDelete({
-    _id: customerId,
-    organizationId,
-  });
-  if (!customer) throw new AppError("customer not found", 404);
-  return customer;
 };
 
 export {
