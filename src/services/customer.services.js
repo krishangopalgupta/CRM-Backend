@@ -1,4 +1,4 @@
-import { mongoose, Types } from "mongoose";
+import { Types } from "mongoose";
 import Customer from "../models/customer.model.js";
 import { decodeCursor, encodeCursor } from "../utils/pagination.js";
 import AppError from "../utils/AppError.js";
@@ -251,71 +251,7 @@ const updateCustomerService = async (
   return { updatedCustomer, customerUpdateHistory };
 };
 
-// const customerActivityHistoryService = async (
-//   customerId,
-//   organizationId,
-//   limit,
-//   cursor,
-//   sort,
-//   search,
-// ) => {
-//   isValidObjectId(customerId, "customerId");
-//   isValidObjectId(organizationId, "organizationId");
-
-//   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-//   const filter = { organizationId, customerId };
-//   if (search) {
-//     const searchRegex = new RegExp(escapeRegex(search), "i");
-//     filter.$or = [
-//       { name: searchRegex },
-//       { email: searchRegex },
-//       { phone: searchRegex },
-//     ];
-//   }
-
-//   const operator = sort === "newest" ? "$lt" : "$gt";
-//   if (cursor) {
-//     const cursorValue = decodeCursor(cursor, organizationId);
-//     filter.$and = [
-//       {
-//         $or: [
-//           { createdAt: { [operator]: cursorValue.createdAt } },
-//           {
-//             createdAt: cursorValue.createdAt,
-//             _id: { [operator]: cursorValue.id },
-//           },
-//         ],
-//       },
-//     ];
-//   }
-
-//   let sortOrder = {};
-//   if (sort === "oldest") sortOrder = { createdAt: 1, _id: 1 };
-//   else sortOrder = { createdAt: -1, _id: -1 };
-
-//   const activities = await customerActivity
-//     .find(filter)
-//     .sort(sortOrder)
-//     .limit(limit + 1);
-//   if (!activities) throw new AppError("customer activity not found");
-
-//   const hasNextPage = activities.length > limit;
-//   if (hasNextPage) activities.pop();
-
-//   const lastCustomer = activities.at(-1);
-//   return {
-//     activities,
-//     hasNextPage,
-//     nextCursor:
-//       hasNextPage && lastCustomer
-//         ? encodeCursor(lastCustomer, organizationId)
-//         : null,
-//   };
-// };
-
-// aggregation Pipeline customer activity History
-
+// customer activity history service
 const customerActivityHistoryService = async (
   customerId,
   organizationId,
@@ -327,8 +263,8 @@ const customerActivityHistoryService = async (
   isValidObjectId(customerId);
   isValidObjectId(organizationId);
 
-  const customerObjectId = new mongoose.Types.ObjectId(customerId);
-  const organizationObjectId = new mongoose.Types.ObjectId(organizationId);
+  const customerObjectId = new Types.ObjectId(customerId);
+  const organizationObjectId = new Types.ObjectId(organizationId);
 
   const customerExist = await customerActivity.exists({
     customerId: customerObjectId,
@@ -338,10 +274,11 @@ const customerActivityHistoryService = async (
 
   const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const filter = {
-    _id: customerObjectId,
+    customerId: customerObjectId,
     organizationId: organizationObjectId,
   };
 
+  // const result = await cus
   if (search) {
     const searchRegex = new RegExp(escapeRegex(search), "i");
     filter.$or = [
@@ -381,18 +318,25 @@ const customerActivityHistoryService = async (
         from: "users",
         localField: "performedBy",
         foreignField: "_id",
-        pipeline: [
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-              email: 1,
-              role: 1,
-              phone: 1,
-            },
-          },
-        ],
+        // pipeline: [
+        //   {
+        //     $project: {
+        //       _id: 1,
+        //       name: 1,
+        //       email: 1,
+        //       role: 1,
+        //       phone: 1,
+        //     },
+        //   },
+        // ],
         as: "performer",
+      },
+
+      $lookup: {
+        from: "organizations",
+        localField: "organizationId",
+        foreignField: "_id",
+        as: "orgDetails",
       },
     },
 
@@ -412,7 +356,11 @@ const customerActivityHistoryService = async (
         action: 1,
         changes: 1,
         createdAt: 1,
-        performer: 1,
+        // performer: 1,
+        "performer._id": 1,
+        "performer.email": 1,
+        "performer.name": 1,
+        "orgDetails.orgName": 1,
       },
     },
   ]);
@@ -423,6 +371,7 @@ const customerActivityHistoryService = async (
   const lastActivity = activity.at(-1);
   return {
     activity,
+    limit,
     hasNextPage,
     nextCursor:
       lastActivity && hasNextPage
