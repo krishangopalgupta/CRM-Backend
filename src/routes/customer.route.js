@@ -51,6 +51,7 @@ router.get(
 router.put(
   "/update-customer/:id",
   authorizeRole("customer:update"),
+  validate(customerSchema),
   asyncHandler(updateCustomer),
 );
 
@@ -62,7 +63,11 @@ router.delete(
 );
 
 // restore customer no need to for authorizeRole to restore customer as anyone can restore the customer
-router.put("/restore-customer/:id", asyncHandler(restoreCustomer));
+router.put(
+  "/restore-customer/:id",
+  authorizeRole("customer:restore"),
+  asyncHandler(restoreCustomer),
+);
 
 // get customer activity
 router.get(
