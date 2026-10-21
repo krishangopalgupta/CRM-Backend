@@ -8,7 +8,10 @@ import authorizeRole from "../middleware/authorizeRole.middleware.js";
 import asyncHandler from "../middleware/asyncHandler.middleware.js";
 import validate from "../middleware/validation.middleware.js";
 
-import { createContact } from "../controllers/contact.controller.js";
+import {
+  createContact,
+  getContact,
+} from "../controllers/contact.controller.js";
 
 router.use(authenticate);
 router.post(
@@ -18,4 +21,9 @@ router.post(
   asyncHandler(createContact),
 );
 
+router.get(
+  "/get-contact/:id",
+  authorizeRole("contact:read"),
+  asyncHandler(getContact),
+);
 export default router;

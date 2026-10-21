@@ -1,4 +1,7 @@
+import mongoose from "mongoose";
+// import { Types } from "mongoose";
 import Contact from "../models/contact.model.js";
+import Customer from "../models/customer.model.js";
 import AppError from "../utils/AppError.js";
 import { isValidObjectId } from "../validations/ObjectIdValidations.js";
 
@@ -17,7 +20,7 @@ const createContactService = async (
 
   // 1. Confirm that the customer exists, is active,
   // and belongs to this organization.
-  const customerExist = await Contact.exists({
+  const customerExist = await Customer.exists({
     organizationId,
     customerId,
     isDeleted: false,
@@ -60,4 +63,59 @@ const createContactService = async (
   return contact;
 };
 
-export { createContactService };
+const getContactService = async (customerId, organizationId) => {
+  isValidObjectId(customerId, "customerId");
+  isValidObjectId(organizationId, "organizationId");
+
+  const customerExist = await Customer.exists({
+    _id: customerId,
+    organizationId,
+    isDeleted: false,
+  });
+  if (!customerExist) throw new AppError('customer doesn"t exist', 404);
+
+  const contact = await Contact.aggregate([
+    {
+      $match: {
+        customerId: new mongoose.Types.ObjectId(customerId),
+        organizationId: new mongoose.Types.ObjectId(organizationId),
+        isDeleted: false,
+      },
+    },
+
+    {
+      $lookup: {
+        from: "organizations",
+        localField: "organizationId",
+        foreignField: "_id",
+        as: "orgDetails",
+      },
+    },
+
+    {
+      $lookup: {
+        from: "customers",
+        localField: "customerId",
+        foreignField: "_id",
+        as: "customerDetails",
+      },
+    },
+
+    {
+      $project: {
+        name: 1,
+        email: 1,
+        email: 1,
+        role: 1,
+        "orgDetails._id": 1,
+        "orgDetails.orgName": 1,
+        "customerDetails._id": 1,
+        "customerDetails.name": 1,
+      },
+    },
+  ]);
+
+  return contact;
+};
+
+export { createContactService, getContactService };
