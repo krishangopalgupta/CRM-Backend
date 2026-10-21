@@ -12,7 +12,7 @@ import {
 } from "../controllers/customer.controller.js";
 
 // validation
-import { customerSchema } from "../validations/auth.vaildation.js";
+import { customerSchema } from "../validations/schema.vaildation.js";
 
 // middlewre
 import validate from "../middleware/validation.middleware.js";

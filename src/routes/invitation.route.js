@@ -14,8 +14,8 @@ import validate from "../middleware/validation.middleware.js";
 import {
   acceptInvitationSchema,
   invitationSchema,
-} from "../validations/auth.vaildation.js";
- 
+} from "../validations/schema.vaildation.js";
+
 // No authentication for the member when he join token itself is the authentication
 router.post(
   "/accept-invitation",

@@ -46,10 +46,28 @@ const acceptInvitationSchema = z.object({
   phone: z.string().regex(/^[6-9]\d{9}$/),
 });
 
+const contactSchema = z
+  .object({
+    name: z.string().trim().max(20),
+    email: z.string().trim().email(),
+    role: z.string().trim().max(20),
+    phone: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z
+        .string()
+        .trim()
+        .regex(/^[6-9]\d{9}$/)
+        .optional()
+        .nullable(),
+    ),
+  })
+  .strict();
+
 export {
   registrationSchema,
   loginSchema,
   customerSchema,
   invitationSchema,
+  contactSchema,
   acceptInvitationSchema,
 };
