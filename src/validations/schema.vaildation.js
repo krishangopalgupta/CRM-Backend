@@ -48,7 +48,7 @@ const acceptInvitationSchema = z.object({
 
 const contactSchema = z
   .object({
-    name: z.string().trim().max(20),
+    name: z.string().trim().max(30),
     email: z.string().trim().email(),
     role: z.string().trim().max(20),
     phone: z.preprocess(
@@ -63,11 +63,41 @@ const contactSchema = z
   })
   .strict();
 
+const updateContactSchema = z.object({
+  name: z.string().trim().max(30).optional().nullable(),
+  email: z.string().trim().email().optional().nullable(),
+  role: z.string().trim().max(20).max(20).optional().nullable(),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[6-9]\d{9}$/)
+    .optional()
+    .nullable(),
+});
+
+// const updateContactSchema = z
+//   .object({
+//     name: z.string().trim().min(1).max(30).optional().nullable(),
+//     email: z.string().trim().email().optional().nullable(),
+//     role: z.string().trim().min(1).max(20).optional().nullable(),
+//     phone: z
+//       .string()
+//       .trim()
+//       .regex(/^[6-9]\d{9}$/)
+//       .optional()
+//       .nullable(),
+//   })
+//   .strict()
+//   .refine((data) => Object.keys(data).length > 0, {
+//     message: "At least one field is required to update",
+//   });
+
 export {
   registrationSchema,
   loginSchema,
   customerSchema,
   invitationSchema,
   contactSchema,
+  updateContactSchema,
   acceptInvitationSchema,
 };

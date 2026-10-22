@@ -25,15 +25,19 @@ const pageLimit = (q) => {
   if (!["newest", "oldest"].includes(sort))
     throw new AppError("invalid sort options", 400);
 
-  return { limit, cursor, sort };
+  // search Validation
+  const search = q.search ?? "";
+
+  return { limit, cursor, sort, search };
 };
 
 const encodeCursor = (object, organizationId) => {
   const cursorData = {
-    createdAt: object.createdAt.toISOString(),
-    id: object._id.toString(),
-    organizationId: organizationId.toString(),
+    createdAt: object.createdAt?.toISOString(),
+    id: object._id?.toString(),
+    organizationId: organizationId?.toString(),
   };
+
 
   return Buffer.from(JSON.stringify(cursorData)).toString("base64url");
 };
@@ -43,6 +47,8 @@ const decodeCursor = (value, organizationId) => {
     const decoded = JSON.parse(
       Buffer.from(value, "base64url").toString("utf8"),
     );
+
+    console.log(decoded);
 
     const createdAt = new Date(decoded.createdAt);
 

@@ -313,11 +313,7 @@ const deleteCustomerService = async (customerId, organizationId, userId) => {
 };
 
 // customer restored service
-const restoreCustomerService = async (
-  customerId,
-  organizationId,
-  userId,
-) => {
+const restoreCustomerService = async (customerId, organizationId, userId) => {
   isValidObjectId(customerId);
   isValidObjectId(organizationId);
   isValidObjectId(userId);

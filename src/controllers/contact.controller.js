@@ -1,7 +1,10 @@
 import {
   createContactService,
   getContactService,
+  updateContactService,
 } from "../services/contact.services.js";
+
+import { pageLimit } from "../utils/pagination.js";
 
 const createContact = async (req, res) => {
   const customerId = req.params?.id;
@@ -22,19 +25,27 @@ const createContact = async (req, res) => {
   });
 };
 
-const getContact = async (req, res) => {
-  const customerId = req.params?.id;
+const updateContact = async (req, res) => {
   const organizationId = req.user?.organizationId;
-  const result = await getContactService(customerId, organizationId);
+  const userId = req.user?.userId;
+  const customerId = req.params?.id;
+  const contactId = req.params?.contactId;
+  const result = await updateContactService(
+    organizationId,
+    userId,
+    customerId,
+    contactId,
+    req.body,
+  );
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message:
-      result.length === 0
-        ? "No record found"
-        : "contat details fetched successfully",
-    result: result.length === 0 ? [] : result,
+      result === undefined
+        ? "no record updates"
+        : "details updated successfully",
+    result,
   });
 };
 
-export { createContact, getContact };
+export { createContact, getContact, updateContact };

@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 
-import { contactSchema } from "../validations/schema.vaildation.js";
+import { contactSchema, updateContactSchema } from "../validations/schema.vaildation.js";
 
 import authenticate from "../middleware/auth.middleware.js";
 import authorizeRole from "../middleware/authorizeRole.middleware.js";
@@ -11,6 +11,7 @@ import validate from "../middleware/validation.middleware.js";
 import {
   createContact,
   getContact,
+  updateContact,
 } from "../controllers/contact.controller.js";
 
 router.use(authenticate);
@@ -21,9 +22,11 @@ router.post(
   asyncHandler(createContact),
 );
 
-router.get(
-  "/get-contact/:id",
-  authorizeRole("contact:read"),
-  asyncHandler(getContact),
+
+router.patch(
+  "/update-contact/:id/:contactId",
+  validate(updateContactSchema),
+  authorizeRole("contact:update"),
+  asyncHandler(updateContact),
 );
 export default router;

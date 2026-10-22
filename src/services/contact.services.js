@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
-// import { Types } from "mongoose";
 import Contact from "../models/contact.model.js";
 import Customer from "../models/customer.model.js";
 import AppError from "../utils/AppError.js";
 import { isValidObjectId } from "../validations/ObjectIdValidations.js";
+import { decodeCursor, encodeCursor } from "../utils/pagination.js";
 
 const createContactService = async (
   customerId,
@@ -63,59 +63,59 @@ const createContactService = async (
   return contact;
 };
 
-const getContactService = async (customerId, organizationId) => {
-  isValidObjectId(customerId, "customerId");
-  isValidObjectId(organizationId, "organizationId");
+const updateContactService = async (
+  organizationId,
+  userId,
+  customerId,
+  contactId,
+  contactData,
+) => {
+  isValidObjectId(organizationId);
+  isValidObjectId(customerId);
+  isValidObjectId(userId);
+  isValidObjectId(contactId);
 
   const customerExist = await Customer.exists({
     _id: customerId,
     organizationId,
     isDeleted: false,
   });
-  if (!customerExist) throw new AppError('customer doesn"t exist', 404);
+  if (!customerExist) throw new AppError("customer doesn't exist", 404);
 
-  const contact = await Contact.aggregate([
-    {
-      $match: {
-        customerId: new mongoose.Types.ObjectId(customerId),
-        organizationId: new mongoose.Types.ObjectId(organizationId),
-        isDeleted: false,
-      },
-    },
+  const filter = {
+    _id: contactId,
+    customerId,
+    organizationId,
+    isDeleted: false,
+  };
 
-    {
-      $lookup: {
-        from: "organizations",
-        localField: "organizationId",
-        foreignField: "_id",
-        as: "orgDetails",
-      },
-    },
+  const contactExist = await Contact.findById(filter);
+  if (!contactExist) throw new AppError("customer doesn't exist", 404);
 
-    {
-      $lookup: {
-        from: "customers",
-        localField: "customerId",
-        foreignField: "_id",
-        as: "customerDetails",
-      },
-    },
+  const { name, email, phone, role } = contactData;
+  let updatedData = {};
+  if (name) updatedData.name = name;
+  if (email) updatedData.email = email;
+  if (phone) updatedData.phone = phone;
+  if (role) updatedData.role = role;
 
-    {
-      $project: {
-        name: 1,
-        email: 1,
-        email: 1,
-        role: 1,
-        "orgDetails._id": 1,
-        "orgDetails.orgName": 1,
-        "customerDetails._id": 1,
-        "customerDetails.name": 1,
-      },
-    },
+  const changes = Object.keys(updatedData).filter((field) => {
+    return contactExist[field] !== updatedData[field];
+  });
+
+  if (changes.length === 0) {
+    return;
+  }
+
+  const updatedContact = await Contact.findOneAndUpdate(
+    filter,
+    { $set: updatedData, lastUpdatedBy: userId },
+    { returnDocument: "after", runValidators: true },
+  ).populate([
+    { path: "lastUpdatedBy", select: "name" },
+    { path: "organizationId", select: "orgName" },
   ]);
 
-  return contact;
+  return updatedContact;
 };
-
-export { createContactService, getContactService };
+export { createContactService, getContactService, updateContactService };
