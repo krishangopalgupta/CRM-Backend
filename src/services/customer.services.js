@@ -224,7 +224,6 @@ const updateCustomerService = async (
         });
 
       if (changes.length === 0) {
-        console.log(changes);
         return;
       }
 

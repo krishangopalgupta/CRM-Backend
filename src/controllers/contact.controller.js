@@ -1,5 +1,6 @@
 import {
   createContactService,
+  deleteContactService,
   getContactService,
   updateContactService,
 } from "../services/contact.services.js";
@@ -25,6 +26,29 @@ const createContact = async (req, res) => {
   });
 };
 
+const getContact = async (req, res) => {
+  const customerId = req.params?.id;
+  const organizationId = req.user?.organizationId;
+  const { limit, cursor, sort, search } = pageLimit(req.query);
+  const result = await getContactService(
+    customerId,
+    organizationId,
+    limit,
+    cursor,
+    sort,
+    search,
+  );
+
+  res.status(200).json({
+    success: true,
+    message:
+      result.length === 0
+        ? "No record found"
+        : "contat details fetched successfully",
+    result: result.length === 0 ? [] : result,
+  });
+};
+
 const updateContact = async (req, res) => {
   const organizationId = req.user?.organizationId;
   const userId = req.user?.userId;
@@ -40,12 +64,30 @@ const updateContact = async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    message:
-      result === undefined
-        ? "no record updates"
-        : "details updated successfully",
-    result,
+    message: result.changed
+      ? "details updated successfully"
+      : "no record updates",
+    result: result.contact,
+    changes: result.changes,
   });
 };
 
-export { createContact, getContact, updateContact };
+const deleteContact = async (req, res) => {
+  const organizationId = req.user?.organizationId;
+  const userId = req.user?.userId;
+  const customerId = req.params?.id;
+  const contactId = req.params?.contactId;
+
+  const result = await deleteContactService(
+    organizationId,
+    userId,
+    customerId,
+    contactId,
+  );
+
+  return res
+    .status(204)
+    .json({ success: true, message: "contact delete successfully" });
+};
+
+export { createContact, getContact, updateContact, deleteContact };

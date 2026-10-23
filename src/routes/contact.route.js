@@ -1,7 +1,10 @@
 import express from "express";
 const router = express.Router();
 
-import { contactSchema, updateContactSchema } from "../validations/schema.vaildation.js";
+import {
+  contactSchema,
+  updateContactSchema,
+} from "../validations/schema.vaildation.js";
 
 import authenticate from "../middleware/auth.middleware.js";
 import authorizeRole from "../middleware/authorizeRole.middleware.js";
@@ -10,6 +13,7 @@ import validate from "../middleware/validation.middleware.js";
 
 import {
   createContact,
+  deleteContact,
   getContact,
   updateContact,
 } from "../controllers/contact.controller.js";
@@ -22,6 +26,11 @@ router.post(
   asyncHandler(createContact),
 );
 
+router.get(
+  "/get-contact/:id",
+  authorizeRole("contact:read"),
+  asyncHandler(getContact),
+);
 
 router.patch(
   "/update-contact/:id/:contactId",
@@ -29,4 +38,17 @@ router.patch(
   authorizeRole("contact:update"),
   asyncHandler(updateContact),
 );
+
+// router.delete(
+//   "/delete-contact/:id/:contactId",
+//   authorizeRole("contact:delete"),
+//   asyncHandler(deleteContact),
+// );
+
+router.delete(
+  "/delete-contact/:id/:contactId",
+  authorizeRole("contact:delete"),
+  asyncHandler(deleteContact),
+);
+
 export default router;

@@ -6,6 +6,7 @@ export const rolePermissions = {
     "contact:create",
     "contact:read",
     "contact:update",
+    "contact:delete",
   ],
   owner: [
     "customer:create",
@@ -18,5 +19,6 @@ export const rolePermissions = {
     "contact:create",
     "contact:read",
     "contact:update",
+    "contact:delete",
   ],
 };
